@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+.claude
+.git
+.gitignore
+*.md
+!portal/**
+!games/**
+!nginx.conf
+!Dockerfile
+!docker-entrypoint.sh

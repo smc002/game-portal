@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      background: #0f1923;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      padding: 60px 20px 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #fff;
+      letter-spacing: 2px;
+    }
+
+    header p {
+      margin-top: 12px;
+      color: #8899aa;
+      font-size: 0.95rem;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      padding: 0 24px 60px;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    .game-card {
+      background: #1a2634;
+      border: 1px solid #2a3a4a;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      border-color: #4a9eff;
+    }
+
+    .game-card .banner {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      background: linear-gradient(135deg, #1e3a5f, #2a1a3f);
+    }
+
+    .game-card .info {
+      padding: 20px;
+    }
+
+    .game-card .info h2 {
+      font-size: 1.15rem;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .game-card .info p {
+      font-size: 0.85rem;
+      color: #8899aa;
+      line-height: 1.5;
+    }
+
+    .game-card .tag {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      background: #2a3a4a;
+      color: #6aafff;
+    }
+
+    footer {
+      padding: 30px;
+      color: #4a5a6a;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Game Portal</h1>
+    <p>Strategy & Tactics Game Demos</p>
+  </header>
+
+  <div class="game-grid">
+    <a class="game-card" href="/sdc2/">
+      <div class="banner" style="background: linear-gradient(135deg, #8b0000, #2a1a0a);">
+        &#9876;
+      </div>
+      <div class="info">
+        <h2>搜打撤 - 三国策略Demo</h2>
+        <p>多人在线策略对战，搜索-战斗-撤退的博弈循环。ATB即时战斗、武将养成、地图探索。</p>
+        <span class="tag">多人对战</span>
+        <span class="tag">策略</span>
+        <span class="tag">三国</span>
+      </div>
+    </a>
+
+    <!-- 未来新游戏在这里添加 -->
+    <!--
+    <a class="game-card" href="/game2/">
+      <div class="banner">&#127918;</div>
+      <div class="info">
+        <h2>新游戏名称</h2>
+        <p>游戏简介</p>
+        <span class="tag">标签</span>
+      </div>
+    </a>
+    -->
+  </div>
+
+  <footer>Game Portal &copy; 2026</footer>
+</body>
+</html>
