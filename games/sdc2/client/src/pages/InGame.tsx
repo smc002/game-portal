@@ -519,12 +519,61 @@ export default function InGame({ socket }: Props) {
           </div>{/* 内层容器结束 */}
         </div>
 
-        {/* ── 将星快捷区 ── */}
+      </div>
+
+      {/* ══ 右侧编队面板（常驻） ══ */}
+      <div style={{
+        width: '280px', flexShrink: 0,
+        borderLeft: '2px solid #5c3a21',
+        background: 'var(--color-bg-panel)',
+        overflowY: 'auto',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{
+          padding: '8px 12px',
+          borderBottom: '1px solid #3a2a1a',
+          background: 'linear-gradient(180deg, #211a14 0%, #1c1410 100%)',
+        }}>
+          <span style={{
+            fontSize: '16px', color: '#f0c850',
+            fontFamily: 'var(--font-heading)',
+            letterSpacing: '2px',
+          }}>
+            编队 ({player.formation.filter(Boolean).length}/5)
+          </span>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <Formation
+            formation={player.formation}
+            bench={player.bench}
+            socket={socket}
+            disabled={player.status === 'in_battle'}
+          />
+        </div>
+      </div>
+
+      {/* ══ 浮动底部控制栏 ══ */}
+      <div style={{
+        position: 'fixed',
+        bottom: '8px',
+        left: '8px',
+        right: '288px',
+        zIndex: 50,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '6px',
+        overflow: 'hidden',
+        boxShadow: '0 -2px 20px rgba(0,0,0,0.6)',
+        border: '1px solid #5c3a21',
+      }}>
+        {/* 将星快捷区 */}
         {starCount > 0 && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '6px 16px', borderTop: '1px solid #3a2a1a',
+            padding: '6px 16px',
             background: 'var(--color-bg-light)',
+            borderBottom: '1px solid #3a2a1a',
+            flexWrap: 'wrap',
           }}>
             <span style={{
               fontSize: '16px', color: '#d4a017',
@@ -568,22 +617,14 @@ export default function InGame({ socket }: Props) {
           </div>
         )}
 
-        {/* ── 底部控制区 ── */}
+        {/* 主控制区 */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: '10px', padding: '10px 16px',
-          background: 'linear-gradient(180deg, #211a14 0%, #1c1410 100%)',
-          borderTop: '2px solid #5c3a21',
+          background: 'linear-gradient(180deg, #211a14ee 0%, #1c1410ee 100%)',
           flexWrap: 'wrap',
           position: 'relative',
         }}>
-          {/* 顶部装饰线 */}
-          <div style={{
-            position: 'absolute', top: '-1px', left: '10%', right: '10%',
-            height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(212, 160, 23, 0.3), transparent)',
-          }} />
-
           {/* 当前位置与状态 */}
           <div style={{
             marginRight: '8px',
@@ -611,7 +652,6 @@ export default function InGame({ socket }: Props) {
           {isSearching ? (
             <button
               onClick={() => {
-                // 乐观更新：立即清除搜索状态，避免服务端竞态导致多余飘窗
                 useGameStore.getState().patchPlayer({ status: 'exploring' });
                 useGameStore.getState().setSearchProgress(null);
                 socket?.emit('game:search_stop');
@@ -718,7 +758,7 @@ export default function InGame({ socket }: Props) {
           </button>
         </div>
 
-        {/* ── 道具快捷栏 ── */}
+        {/* 道具快捷栏 */}
         {usableItems.length > 0 && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px',
@@ -751,37 +791,6 @@ export default function InGame({ socket }: Props) {
             ))}
           </div>
         )}
-      </div>
-
-      {/* ══ 右侧编队面板（常驻） ══ */}
-      <div style={{
-        width: '280px', flexShrink: 0,
-        borderLeft: '2px solid #5c3a21',
-        background: 'var(--color-bg-panel)',
-        overflowY: 'auto',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid #3a2a1a',
-          background: 'linear-gradient(180deg, #211a14 0%, #1c1410 100%)',
-        }}>
-          <span style={{
-            fontSize: '16px', color: '#f0c850',
-            fontFamily: 'var(--font-heading)',
-            letterSpacing: '2px',
-          }}>
-            编队 ({player.formation.filter(Boolean).length}/5)
-          </span>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <Formation
-            formation={player.formation}
-            bench={player.bench}
-            socket={socket}
-            disabled={player.status === 'in_battle'}
-          />
-        </div>
       </div>
     </div>
   );

@@ -18,9 +18,21 @@ COPY games/sdc2/tsconfig.base.json ./
 # 构建 client + server
 RUN npm run build
 
-# ---- 未来新游戏在这里添加 build stage ----
-# FROM node:20-alpine AS build-game2
-# ...
+# ---- Build Stage: sanPal ----
+FROM node:20-alpine AS build-sanpal
+WORKDIR /app
+COPY games/sanPal/package.json games/sanPal/package-lock.json* ./
+RUN npm ci
+COPY games/sanPal/ ./
+RUN npm run build
+
+# ---- Build Stage: tianjiBox ----
+FROM node:20-alpine AS build-tianjibox
+WORKDIR /app
+COPY games/tianjiBox/client/package.json games/tianjiBox/client/package-lock.json* ./
+RUN npm ci
+COPY games/tianjiBox/client/ ./
+RUN npm run build
 
 # ---- Runtime Stage ----
 FROM node:20-alpine
@@ -35,6 +47,12 @@ COPY --from=build-sdc2 /app/server/package.json games/sdc2/server/
 COPY --from=build-sdc2 /app/package.json /app/package-lock.json games/sdc2/
 COPY --from=build-sdc2 /app/shared/ games/sdc2/shared/
 RUN cd games/sdc2 && npm ci --workspace=server --omit=dev --ignore-scripts
+
+# sanPal 构建产物（纯前端静态文件）
+COPY --from=build-sanpal /app/dist games/sanPal/dist/
+
+# tianjiBox 构建产物（纯前端静态文件）
+COPY --from=build-tianjibox /app/dist games/tianjiBox/client/dist/
 
 # Portal 页
 COPY portal/ portal/

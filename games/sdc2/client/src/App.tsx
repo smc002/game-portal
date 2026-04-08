@@ -142,7 +142,7 @@ export default function App() {
   }, [socket, setPhase, setPlayer, patchPlayer, setMapState, patchMapState, addNotification, addCenterFloat, setRerollData, setBattleData, setEncounterData, setLootData, setSearchProgress]);
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', minHeight: '100%' }}>
       {!connected && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,

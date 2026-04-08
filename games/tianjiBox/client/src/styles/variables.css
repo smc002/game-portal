@@ -1,0 +1,41 @@
+:root {
+  /* 品质颜色 */
+  --quality-white: #c0c0c0;
+  --quality-blue: #4a9eff;
+  --quality-purple: #b44aff;
+  --quality-orange: #ff8c00;
+  --quality-red: #ff3333;
+
+  /* 品质背景（半透明） */
+  --quality-white-bg: rgba(192, 192, 192, 0.15);
+  --quality-blue-bg: rgba(74, 158, 255, 0.15);
+  --quality-purple-bg: rgba(180, 74, 255, 0.15);
+  --quality-orange-bg: rgba(255, 140, 0, 0.15);
+  --quality-red-bg: rgba(255, 51, 51, 0.15);
+
+  /* 类别颜色 */
+  --cat-bingshu: #e8c34a;
+  --cat-suanchou: #4ae88a;
+  --cat-fujie: #4abce8;
+  --cat-qixie: #e84a8a;
+  --cat-zhenbao: #ffd700;
+
+  /* 主题色 */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #0f3460;
+  --bg-slot: #1a1a3e;
+  --bg-slot-locked: #111122;
+  --text-primary: #e8e8e8;
+  --text-secondary: #a0a0b0;
+  --accent: #e8a84a;
+  --accent-hover: #f0b860;
+  --danger: #ff4444;
+  --success: #44cc66;
+
+  /* 评级颜色 */
+  --rating-normal: #888;
+  --rating-strategic: #4a9eff;
+  --rating-masterful: #b44aff;
+  --rating-divine: #ffd700;
+}

@@ -55,13 +55,21 @@
   --font-body: 'Noto Serif SC', 'STSong', 'SimSun', 'Microsoft YaHei', serif;
 }
 
-html, body, #root {
+html, body {
   width: 100%;
   height: 100%;
   font-family: var(--font-body);
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── 纹理背景（全局） ── */

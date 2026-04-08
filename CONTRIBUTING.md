@@ -110,5 +110,7 @@ docker push registry.cn-xxxxx.aliyuncs.com/gameportal/san-portal:latest
 | 游戏 | 后端端口 | URL 路径 |
 |------|----------|----------|
 | sdc2 | 3001 | `/sdc2/` |
-| （预留）| 3002 | `/game2/` |
-| （预留）| 3003 | `/game3/` |
+| sanPal | 无（纯静态） | `/sanPal/` |
+| tianjiBox | 无（纯静态） | `/tianjiBox/` |
+| （预留）| 3002 | `/game4/` |
+| （预留）| 3003 | `/game5/` |

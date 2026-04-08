@@ -1,0 +1,50 @@
+:root {
+  /* -- Base palette -- */
+  --color-bg: #0c0a08;
+  --color-bg-panel: #1a1510;
+  --color-bg-card: #241e16;
+  --color-bg-overlay: rgba(0, 0, 0, 0.75);
+  --color-border: #3a3020;
+  --color-border-light: #5a4a30;
+
+  /* -- Text -- */
+  --color-text: #e8dcc8;
+  --color-text-dim: #a89878;
+  --color-text-bright: #fff8e8;
+
+  /* -- Weapon Types -- */
+  --color-bow: #30a848;
+  --color-bow-bg: #0a2010;
+  --color-spear: #3090e0;
+  --color-spear-bg: #081828;
+  --color-cavalry: #e63e20;
+  --color-cavalry-bg: #3a1008;
+
+  /* -- Rarity -- */
+  --color-star1: #a0a0a0;
+  --color-star2: #40b040;
+  --color-star3: #3090e0;
+  --color-star4: #a040d0;
+  --color-star5: #e8a020;
+
+  /* -- Factions -- */
+  --color-wei: #4488cc;
+  --color-shu: #44aa44;
+  --color-wu: #cc4444;
+  --color-qun: #aa66cc;
+
+  /* -- UI -- */
+  --color-hp: #30a848;
+  --color-hp-low: #cc3030;
+  --color-primary: #c41e3a;
+  --color-primary-hover: #e02848;
+  --color-gold: #d4a017;
+
+  /* -- Typography -- */
+  --font-display: 'Ma Shan Zheng', cursive, serif;
+  --font-body: 'Noto Serif SC', 'Songti SC', serif;
+
+  /* -- Layout -- */
+  --game-max-width: 480px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

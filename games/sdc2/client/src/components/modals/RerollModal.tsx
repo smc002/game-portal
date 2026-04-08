@@ -31,8 +31,14 @@ export default function RerollModal({ heroes, freeRerolls, socket, gold, onConfi
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(0,0,0,0.88)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
     }}>
+      <div style={{
+        minHeight: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px 0',
+      }}>
       <div style={{
         background: 'var(--color-bg-panel)',
         padding: '32px',
@@ -129,6 +135,7 @@ export default function RerollModal({ heroes, freeRerolls, socket, gold, onConfi
             点将出征
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
