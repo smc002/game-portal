@@ -239,7 +239,7 @@ interface BattleState {
 | 数据类型 | 数量 | 分布 |
 |----------|------|------|
 | 武将 | 30 | ★:5, ★★:8, ★★★:8, ★★★★:6, ★★★★★:3 |
-| 技能 | 34 | 火:7, 水:6, 金:9, 木:6, 土:6 |
+| 技能 | 46 | 含12个debuff/exploit组合技能 |
 | 道具 | 10 | 捕获:3, 恢复:3, 战斗:4 |
 | 连携 | 9 | 常驻:5, 触发:4（数据定义，逻辑未实装） |
 | 事件 | 4 | 各含2个选项 |
@@ -249,7 +249,7 @@ interface BattleState {
 
 ## 八、部署适配
 
-按照 CONTRIBUTING.md 流程接入 Portal：
+本项目作为 monorepo workspace 接入，依赖由根目录统一管理。
 
 | 配置项 | 值 |
 |--------|-----|
@@ -257,13 +257,13 @@ interface BattleState {
 | 后端端口 | 无（纯静态） |
 | Vite base | `/sanPal/` |
 | 开发端口 | 5174 |
+| workspace 名 | `sanpal` |
 
-Dockerfile（仅 build stage）：
+Dockerfile（继承共享 deps stage）：
 ```dockerfile
-FROM node:20-alpine AS build-sanpal
-WORKDIR /app
-COPY games/sanPal/ ./
-RUN npm ci && npm run build
+FROM deps AS build-sanpal
+COPY games/sanPal/ games/sanPal/
+RUN npm run build -w sanpal
 ```
 
 nginx：
@@ -279,11 +279,18 @@ location /sanPal/ {
 ## 九、构建验证
 
 ```bash
+# 根目录统一安装（首次或依赖变更时）
+cd sanSDC2-cc
+npm install
+
+# 进入子目录开发
 cd games/sanPal
-npm install          # 安装依赖（70 packages）
-npx tsc --noEmit     # TypeScript 类型检查
-npx vite build       # Vite 生产构建（~260KB gzip ~80KB）
 npm run dev          # 开发服务器 http://localhost:5174/sanPal/
+npx tsc --noEmit     # TypeScript 类型检查
+npx vite build       # 生产构建
+
+# 或从根目录启动
+npm run dev -w sanpal
 ```
 
 ---

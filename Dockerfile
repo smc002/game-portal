@@ -1,32 +1,34 @@
-# ---- Build Stage: sdc2 ----
-FROM node:20-alpine AS build-sdc2
+# ---- Dependency Stage (workspace 共享依赖) ----
+FROM node:20-alpine AS deps
 WORKDIR /app
 
-# 安装依赖
-COPY games/sdc2/package.json games/sdc2/package-lock.json ./
-COPY games/sdc2/shared/package.json shared/
-COPY games/sdc2/client/package.json client/
-COPY games/sdc2/server/package.json server/
+# 根 workspace 配置 + lock 文件
+COPY package.json package-lock.json ./
+
+# sdc2（含嵌套 workspaces: shared/client/server）
+COPY games/sdc2/package.json games/sdc2/
+COPY games/sdc2/shared/package.json games/sdc2/shared/
+COPY games/sdc2/client/package.json games/sdc2/client/
+COPY games/sdc2/server/package.json games/sdc2/server/
+
+# 纯前端 workspace
+COPY games/sanPal/package.json games/sanPal/
+COPY games/rglike/package.json games/rglike/
+COPY games/superAutoSan/package.json games/superAutoSan/
+
 RUN npm ci
 
-# 拷贝源码
-COPY games/sdc2/shared/ shared/
-COPY games/sdc2/client/ client/
-COPY games/sdc2/server/ server/
-COPY games/sdc2/tsconfig.base.json ./
-
-# 构建 client + server
-RUN npm run build
+# ---- Build Stage: sdc2 ----
+FROM deps AS build-sdc2
+COPY games/sdc2/ games/sdc2/
+RUN npm run build -w san-sdc2
 
 # ---- Build Stage: sanPal ----
-FROM node:20-alpine AS build-sanpal
-WORKDIR /app
-COPY games/sanPal/package.json games/sanPal/package-lock.json* ./
-RUN npm ci
-COPY games/sanPal/ ./
-RUN npm run build
+FROM deps AS build-sanpal
+COPY games/sanPal/ games/sanPal/
+RUN npm run build -w sanpal
 
-# ---- Build Stage: tianjiBox ----
+# ---- Build Stage: tianjiBox (独立构建，不在 workspace 中) ----
 FROM node:20-alpine AS build-tianjibox
 WORKDIR /app
 COPY games/tianjiBox/client/package.json games/tianjiBox/client/package-lock.json* ./
@@ -35,20 +37,14 @@ COPY games/tianjiBox/client/ ./
 RUN npm run build
 
 # ---- Build Stage: rglike ----
-FROM node:20-alpine AS build-rglike
-WORKDIR /app
-COPY games/rglike/package.json games/rglike/package-lock.json* ./
-RUN npm ci
-COPY games/rglike/ ./
-RUN npm run build
+FROM deps AS build-rglike
+COPY games/rglike/ games/rglike/
+RUN npm run build -w rglikeproject-temp
 
 # ---- Build Stage: superAutoSan ----
-FROM node:20-alpine AS build-superautosan
-WORKDIR /app
-COPY games/superAutoSan/package.json games/superAutoSan/package-lock.json* ./
-RUN npm ci
-COPY games/superAutoSan/ ./
-RUN npm run build
+FROM deps AS build-superautosan
+COPY games/superAutoSan/ games/superAutoSan/
+RUN npm run build -w superautosan
 
 # ---- Runtime Stage ----
 FROM node:20-alpine
@@ -56,16 +52,21 @@ RUN apk add --no-cache nginx
 
 WORKDIR /app
 
+# sdc2 运行时：安装 server 生产依赖（需要 workspace 上下文）
+COPY package.json package-lock.json ./
+COPY games/sdc2/package.json games/sdc2/
+COPY games/sdc2/shared/package.json games/sdc2/shared/
+COPY games/sdc2/server/package.json games/sdc2/server/
+COPY games/sdc2/client/package.json games/sdc2/client/
+RUN npm ci -w san-sdc2 --omit=dev --ignore-scripts
+
 # sdc2 构建产物
-COPY --from=build-sdc2 /app/client/dist games/sdc2/client/dist/
-COPY --from=build-sdc2 /app/server/dist games/sdc2/server/dist/
-COPY --from=build-sdc2 /app/server/package.json games/sdc2/server/
-COPY --from=build-sdc2 /app/package.json /app/package-lock.json games/sdc2/
-COPY --from=build-sdc2 /app/shared/ games/sdc2/shared/
-RUN cd games/sdc2 && npm ci --workspace=server --omit=dev --ignore-scripts
+COPY --from=build-sdc2 /app/games/sdc2/client/dist games/sdc2/client/dist/
+COPY --from=build-sdc2 /app/games/sdc2/server/dist games/sdc2/server/dist/
+COPY --from=build-sdc2 /app/games/sdc2/shared/ games/sdc2/shared/
 
 # sanPal 构建产物（纯前端静态文件）
-COPY --from=build-sanpal /app/dist games/sanPal/dist/
+COPY --from=build-sanpal /app/games/sanPal/dist games/sanPal/dist/
 
 # tianjiBox 构建产物（纯前端静态文件）
 COPY --from=build-tianjibox /app/dist games/tianjiBox/client/dist/
@@ -74,10 +75,10 @@ COPY --from=build-tianjibox /app/dist games/tianjiBox/client/dist/
 COPY games/zhongyi/ games/zhongyi/
 
 # rglike 构建产物（纯前端静态文件）
-COPY --from=build-rglike /app/dist games/rglike/dist/
+COPY --from=build-rglike /app/games/rglike/dist games/rglike/dist/
 
 # superAutoSan 构建产物（纯前端静态文件）
-COPY --from=build-superautosan /app/dist games/superAutoSan/dist/
+COPY --from=build-superautosan /app/games/superAutoSan/dist games/superAutoSan/dist/
 
 # Portal 页
 COPY portal/ portal/

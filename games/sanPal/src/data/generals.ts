@@ -13,7 +13,7 @@ export const GENERALS: Record<string, GeneralDef> = {
   // ==================== ★★★★★ Legendary (Bosses) ====================
   zhang_jiao: {
     id: 'zhang_jiao', name: '张角', weapon: 'cavalry', faction: 'qun', star: 5,
-    baseStats: { hp: 100, atk: 30, int: 85, def: 45, res: 75, spd: 55 },
+    baseStats: { hp: 100, atk: 30, int: 70, def: 45, res: 65, spd: 55 },
     passive: { id: 'p_tianbian', name: '天变', description: '每3回合随机给对方施加异常状态' },
     skills: [s('atk_scheme'), s('bazhen_tu'), s('def_shield'), C],
   },
@@ -35,7 +35,7 @@ export const GENERALS: Record<string, GeneralDef> = {
     id: 'cao_cao', name: '曹操', weapon: 'cavalry', faction: 'wei', star: 4,
     baseStats: { hp: 90, atk: 40, int: 90, def: 60, res: 80, spd: 60 },
     passive: { id: 'p_jianxiong', name: '奸雄', description: '切换上场时随机降低对方一项属性1级' },
-    skills: [s('atk_scheme'), s('xie_tianzi'), s('def_counter'), C],
+    skills: [s('lijian'), s('xie_tianzi'), s('def_counter'), C],
   },
   liu_bei: {
     id: 'liu_bei', name: '刘备', weapon: 'cavalry', faction: 'shu', star: 4,
@@ -53,19 +53,19 @@ export const GENERALS: Record<string, GeneralDef> = {
     id: 'zhuge_liang', name: '诸葛亮', weapon: 'bow', faction: 'shu', star: 4,
     baseStats: { hp: 85, atk: 30, int: 100, def: 45, res: 80, spd: 65 },
     passive: { id: 'p_guanxing', name: '观星', description: '计策命中率+15%' },
-    skills: [s('atk_scheme'), s('huoshao_lianying'), s('def_shield'), C],
+    skills: [s('qimen_shu'), s('tianlei'), s('def_shield'), C],
   },
   sima_yi: {
     id: 'sima_yi', name: '司马懿', weapon: 'bow', faction: 'wei', star: 4,
     baseStats: { hp: 90, atk: 35, int: 95, def: 55, res: 85, spd: 55 },
     passive: { id: 'p_yinren', name: '隐忍', description: '受到攻击后INT+1级（上限+3）' },
-    skills: [s('atk_scheme'), s('bazhen_tu'), s('def_counter'), C],
+    skills: [s('ansuan'), s('quanmou'), s('def_counter'), C],
   },
   zhou_yu: {
     id: 'zhou_yu', name: '周瑜', weapon: 'bow', faction: 'wu', star: 4,
     baseStats: { hp: 80, atk: 35, int: 95, def: 50, res: 75, spd: 70 },
     passive: { id: 'p_chibi', name: '赤壁之焰', description: '对灼烧状态的敌人计策伤害+25%' },
-    skills: [s('atk_scheme'), s('lianhua_ji'), s('def_shield'), C],
+    skills: [s('huogong'), s('lianhua_ji'), s('def_shield'), C],
   },
 
   // ==================== ★★★ Rare ====================
@@ -73,19 +73,19 @@ export const GENERALS: Record<string, GeneralDef> = {
     id: 'guan_yu', name: '关羽', weapon: 'spear', faction: 'shu', star: 3,
     baseStats: { hp: 95, atk: 95, int: 40, def: 70, res: 55, spd: 55 },
     passive: { id: 'p_wusheng', name: '武圣', description: '武技暴击伤害×2.0' },
-    skills: [s('atk_slash'), s('qinglong_zhan'), s('def_counter'), C],
+    skills: [s('weiya'), s('qinglong_zhan'), s('def_counter'), C],
   },
   zhang_fei: {
     id: 'zhang_fei', name: '张飞', weapon: 'spear', faction: 'shu', star: 3,
     baseStats: { hp: 100, atk: 85, int: 25, def: 75, res: 45, spd: 50 },
     passive: { id: 'p_baohou', name: '暴吼', description: '上场时30%概率使对方眩晕' },
-    skills: [s('atk_thrust'), s('zhang_ba_she'), s('def_shield'), C],
+    skills: [s('nuhe'), s('zhang_ba_she'), s('def_shield'), C],
   },
   zhao_yun: {
     id: 'zhao_yun', name: '赵云', weapon: 'spear', faction: 'shu', star: 3,
     baseStats: { hp: 90, atk: 85, int: 35, def: 75, res: 60, spd: 75 },
     passive: { id: 'p_hunshenshidan', name: '浑身是胆', description: 'HP<30%时SPD+50%，先制+1' },
-    skills: [s('atk_thrust'), s('longdan_qiang'), s('def_counter'), C],
+    skills: [s('hanqiang_ci'), s('longdan_qiang'), s('def_counter'), C],
   },
   huang_zhong: {
     id: 'huang_zhong', name: '黄忠', weapon: 'bow', faction: 'shu', star: 3,
@@ -109,13 +109,13 @@ export const GENERALS: Record<string, GeneralDef> = {
     id: 'lu_xun', name: '陆逊', weapon: 'bow', faction: 'wu', star: 3,
     baseStats: { hp: 75, atk: 30, int: 85, def: 50, res: 70, spd: 65 },
     passive: { id: 'p_huoji', name: '火计', description: '计策技能附加20%灼烧概率' },
-    skills: [s('atk_scheme'), s('huoshao_lianying'), s('def_shield'), C],
+    skills: [s('zonghuo'), s('huoshao_lianying'), s('def_shield'), C],
   },
   pang_tong: {
     id: 'pang_tong', name: '庞统', weapon: 'bow', faction: 'shu', star: 3,
     baseStats: { hp: 80, atk: 30, int: 90, def: 50, res: 75, spd: 55 },
     passive: { id: 'p_fengchu', name: '凤雏', description: '计策命中后目标RES-1级' },
-    skills: [s('atk_scheme'), s('bazhen_tu'), s('def_shield'), C],
+    skills: [s('luofeng'), s('lianhuanzhen'), s('def_shield'), C],
   },
 
   // ==================== ★★ Uncommon ====================

@@ -1,0 +1,7 @@
+{
+  "name": "san-sdc2-monorepo",
+  "private": true,
+  "workspaces": [
+    "games/*"
+  ]
+}

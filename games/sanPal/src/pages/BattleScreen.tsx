@@ -239,7 +239,7 @@ export default function BattleScreen() {
           const stanceState = freshTarget.specialStates.find(sp => sp.type === 'stance');
           const stanceValue = stanceState?.value ?? 0;
 
-          const { shieldAbsorbed, patch: dmgPatch, stanceTriggered } = applyDamage(freshTarget, dmgResult.damage);
+          const { shieldAbsorbed, stanceReduced, patch: dmgPatch, stanceTriggered } = applyDamage(freshTarget, dmgResult.damage);
           totalDmg += dmgResult.damage;
 
           const targetUpdateFn = turn.side === 'player' ? st.updateEnemyGeneral : st.updatePlayerGeneral;
@@ -263,6 +263,7 @@ export default function BattleScreen() {
           if (hit === 0 && dmgResult.effectiveness === 'super') msg += '（克制！）';
           if (hit === 0 && dmgResult.effectiveness === 'resist') msg += '（被克）';
           if (shieldAbsorbed > 0) msg += `（护盾吸收${shieldAbsorbed}）`;
+          if (stanceReduced > 0) msg += `（防御减免${stanceReduced}）`;
           st.addLog({ type: 'skill', actorSide: turn.side, message: msg, damage: dmgResult.damage });
 
           // Passive: on damage taken
@@ -426,11 +427,11 @@ export default function BattleScreen() {
       const nextName = getGeneralDef(team[nextIdx]!.defId).name;
       if (side === 'enemy') {
         s.setEnemyActive(nextIdx);
-        s.updateEnemyGeneral(nextIdx, { justSwitchedIn: true });
+        // Death replacement: can act next turn (no justSwitchedIn skip)
         s.addLog({ type: 'switch', actorSide: 'enemy', message: `对方换上了${nextName}！` });
       } else {
         s.setPlayerActive(nextIdx);
-        s.updatePlayerGeneral(nextIdx, { justSwitchedIn: true });
+        // Death replacement: can act next turn (no justSwitchedIn skip)
         s.addLog({ type: 'switch', actorSide: 'player', message: `换上了${nextName}！` });
       }
     }

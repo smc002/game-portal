@@ -130,11 +130,12 @@ sanSDC2-cc/
 ├── portal/                      # 游戏总览页（纯静态）
 │   └── index.html               # 卡片式游戏入口页
 │
-├── Dockerfile                   # 多阶段构建（build → runtime）
+├── package.json                 # 根 workspace 配置（workspaces: ["games/*"]）
+├── package-lock.json            # 统一依赖锁定（所有 workspace 共享）
+├── Dockerfile                   # 多阶段构建（deps → build → runtime）
 ├── nginx.conf                   # Nginx 反代配置（Portal + 游戏静态 + WebSocket）
 ├── docker-entrypoint.sh         # 容器启动脚本（Nginx + Node）
-├── .dockerignore                # Docker 构建排除规则
-└── package.json                 # 根 workspace 配置（monorepo）
+└── .dockerignore                # Docker 构建排除规则
 ```
 
 ---
@@ -377,12 +378,51 @@ interface PlayerState {
 
 ## 七、部署架构
 
-### 整体结构
+### Monorepo 结构（npm workspaces）
+
+根目录 `package.json` 声明 `"workspaces": ["games/*"]`，所有子项目共享依赖（vite、react、typescript 等），统一由根目录 `package-lock.json` 锁定版本。
 
 ```
-Portal (/)          ← 静态总览页，列出所有游戏入口
-  └── /sdc2/        ← 三国搜打撤（React SPA + WebSocket）
-  └── /game2/       ← 未来其他游戏
+sanSDC2-cc/
+├── package.json          ← workspaces: ["games/*"]
+├── package-lock.json     ← 统一 lock 文件
+├── node_modules/         ← 依赖提升到根目录
+├── games/
+│   ├── sdc2/             ← workspace（含嵌套 workspaces: shared/client/server）
+│   ├── sanPal/           ← workspace（纯前端）
+│   ├── rglike/           ← workspace（纯前端）
+│   ├── superAutoSan/     ← workspace（纯前端）
+│   ├── tianjiBox/        ← 独立项目（无根 package.json，不参与 workspace）
+│   └── zhongyi/          ← 纯静态 HTML，无 package.json
+```
+
+**开发命令**：
+```bash
+# 根目录统一安装所有依赖
+npm install
+
+# 启动指定游戏开发服务器
+npm run dev -w sanpal
+npm run dev -w san-sdc2
+npm run dev -w superautosan
+npm run dev -w rglikeproject-temp
+
+# 或进入子目录运行
+cd games/sanPal && npm run dev
+```
+
+> tianjiBox 因目录结构为 `games/tianjiBox/client/`（无根 package.json），不参与 workspace，需在 `games/tianjiBox/client/` 下独立 `npm install`。
+
+### 整体部署结构
+
+```
+Portal (/)            ← 静态总览页，列出所有游戏入口
+  └── /sdc2/          ← 三国搜打撤（React SPA + WebSocket）
+  └── /sanPal/        ← 三国武将录（纯静态前端）
+  └── /tianjiBox/     ← 天机盒（纯静态前端）
+  └── /rglike/        ← 三国自走棋（纯静态前端）
+  └── /superAutoSan/  ← 超级自走三国（纯静态前端）
+  └── /zhongyi/       ← 杏林春满（纯静态单 HTML）
 ```
 
 ### 容器架构（单 Docker 容器）
@@ -397,7 +437,26 @@ Portal (/)          ← 静态总览页，列出所有游戏入口
 | `/` | Nginx → `portal/index.html` | 游戏总览页 |
 | `/sdc2/` | Nginx → `client/dist/` | 搜打撤前端 SPA |
 | `/sdc2/socket.io/` | Nginx → Node:3001 | WebSocket 反代 |
+| `/sanPal/` | Nginx → 静态文件 | 三国武将录 SPA |
+| `/tianjiBox/` | Nginx → 静态文件 | 天机盒 SPA |
+| `/rglike/` | Nginx → 静态文件 | 三国自走棋 SPA |
+| `/superAutoSan/` | Nginx → 静态文件 | 超级自走三国 SPA |
+| `/zhongyi/` | Nginx → 静态文件 | 杏林春满 |
 | `/health` | Nginx → Node:3001 | 健康检查 |
+
+### Docker 构建架构
+
+Dockerfile 采用 **共享依赖 + 多阶段构建**：
+
+```
+deps stage        ← 根 workspace npm ci，安装所有依赖（可缓存）
+  ├── build-sdc2       ← 继承 deps，拷贝 sdc2 源码并构建
+  ├── build-sanpal     ← 继承 deps，拷贝 sanPal 源码并构建
+  ├── build-rglike     ← 继承 deps，拷贝 rglike 源码并构建
+  └── build-superautosan ← 继承 deps，拷贝 superAutoSan 源码并构建
+build-tianjibox   ← 独立 stage（不在 workspace 中）
+runtime stage     ← 收集所有构建产物 + sdc2 server 生产依赖
+```
 
 ### 部署目标
 
@@ -408,17 +467,20 @@ Portal (/)          ← 静态总览页，列出所有游戏入口
 
 | 文件 | 用途 |
 |------|------|
+| `package.json` | 根 workspace 配置 |
+| `package-lock.json` | 统一依赖锁定 |
 | `portal/index.html` | 游戏总览页（纯静态） |
-| `Dockerfile` | 多阶段构建（build → runtime） |
+| `Dockerfile` | 多阶段构建（deps → build → runtime） |
 | `nginx.conf` | 静态托管 + 反代规则 |
 | `docker-entrypoint.sh` | 同时启动 Nginx + Node |
 
 ### 构建命令
 
 ```bash
-npm run build          # 构建 client + server
-docker build -t san-portal .   # 构建镜像
-docker run -p 80:80 san-portal # 本地测试
+npm install                        # 根目录安装所有 workspace 依赖
+npm run build -w san-sdc2          # 构建 sdc2（client + server）
+docker build -t san-portal .       # 构建 Docker 镜像
+docker run -p 80:80 san-portal     # 本地测试
 ```
 
 ---

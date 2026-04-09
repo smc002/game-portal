@@ -449,7 +449,7 @@ interface WaveConfig {
 
 ## 十、部署适配
 
-按照 CONTRIBUTING.md 流程接入 Portal：
+本项目作为 monorepo workspace 接入，依赖由根目录统一管理。
 
 | 配置项 | 值 |
 |--------|-----|
@@ -457,13 +457,13 @@ interface WaveConfig {
 | 后端端口 | 无（纯静态） |
 | Vite base | `/superAutoSan/` |
 | 开发端口 | 5175 |
+| workspace 名 | `superautosan` |
 
-Dockerfile（仅 build stage）：
+Dockerfile（继承共享 deps stage）：
 ```dockerfile
-FROM node:20-alpine AS build-superautosan
-WORKDIR /app
-COPY games/superAutoSan/ ./
-RUN npm ci && npm run build
+FROM deps AS build-superautosan
+COPY games/superAutoSan/ games/superAutoSan/
+RUN npm run build -w superautosan
 ```
 
 nginx：
@@ -479,11 +479,18 @@ location /superAutoSan/ {
 ## 十一、构建验证
 
 ```bash
-cd games/superAutoSan
+# 根目录统一安装（首次或依赖变更时）
+cd sanSDC2-cc
 npm install
+
+# 进入子目录开发
+cd games/superAutoSan
+npm run dev               # 开发服务器 http://localhost:5175/superAutoSan/
 npx tsc --noEmit          # TypeScript 类型检查
 npx vite build            # 生产构建
-npm run dev               # 开发服务器 http://localhost:5175/superAutoSan/
+
+# 或从根目录启动
+npm run dev -w superautosan
 ```
 
 ---

@@ -467,7 +467,8 @@ function getTreasureThreshold(treasureCount: number): number {
   - 机关池耗尽的降级处理
 - 集成到 Portal：
   - 更新 `portal/index.html` 添加天机盒卡片
-  - 更新 `Dockerfile` 添加 build stage
+  - 更新 `Dockerfile` 添加 build stage（tianjiBox 独立构建，不参与根 workspace）
   - 更新 `nginx.conf` 添加静态文件路由（纯前端，无需 WebSocket）
   - 更新 `CONTRIBUTING.md` 端口分配表
+  - 注意：tianjiBox 因目录结构为 `games/tianjiBox/client/`（无根 package.json），不参与 monorepo workspace，需保留独立的 `package-lock.json`
 - 整体测试

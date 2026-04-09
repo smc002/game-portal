@@ -9,8 +9,8 @@ export const WEAPON_ADVANTAGE: Record<WeaponType, WeaponType> = {
 };
 
 export function getWeaponMultiplier(attacker: WeaponType, defender: WeaponType): number {
-  if (WEAPON_ADVANTAGE[attacker] === defender) return 1.5;
-  if (WEAPON_ADVANTAGE[defender] === attacker) return 0.67;
+  if (WEAPON_ADVANTAGE[attacker] === defender) return 2.0;
+  if (WEAPON_ADVANTAGE[defender] === attacker) return 0.5;
   return 1.0;
 }
 
@@ -74,6 +74,8 @@ export interface SkillDef {
   priority: number;     // +2/+1/0/-1
   description: string;
   effects: SkillEffect[];
+  bonusVsStatus?: { status: StatusType; multiplier: number }; // bonus damage vs targets with this status
+  bonusVsDebuffed?: number; // damage multiplier when target has any negative stat stages
 }
 
 // ===== Passive =====

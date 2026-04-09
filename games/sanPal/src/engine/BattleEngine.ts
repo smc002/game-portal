@@ -75,6 +75,17 @@ export function calcDamage(
     baseDmg *= 1.25;
   }
 
+  // Skill bonus vs status condition (debuff→exploit combo)
+  if (skill.bonusVsStatus && defender.status?.type === skill.bonusVsStatus.status) {
+    baseDmg *= skill.bonusVsStatus.multiplier;
+  }
+
+  // Skill bonus vs debuffed target (any negative stat stage)
+  if (skill.bonusVsDebuffed) {
+    const hasNegativeStage = Object.values(defender.statStages).some(v => v < 0);
+    if (hasNegativeStage) baseDmg *= skill.bonusVsDebuffed;
+  }
+
   const effectiveness: DamageResult['effectiveness'] =
     weaponMult > 1 ? 'super' : weaponMult < 1 ? 'resist' : 'normal';
 
@@ -299,10 +310,11 @@ export function processTurnStart(
 export function applyDamage(
   target: GeneralInstance,
   rawDamage: number,
-): { finalDamage: number; shieldAbsorbed: number; patch: Partial<GeneralInstance>; stanceTriggered: boolean } {
+): { finalDamage: number; shieldAbsorbed: number; stanceReduced: number; patch: Partial<GeneralInstance>; stanceTriggered: boolean } {
   const patch: Partial<GeneralInstance> = {};
   let remaining = rawDamage;
   let shieldAbsorbed = 0;
+  let stanceReduced = 0;
   let stanceTriggered = false;
 
   // Shield absorbs first
@@ -321,17 +333,19 @@ export function applyDamage(
     }
   }
 
-  // Check for stance
+  // Check for stance — 80% damage reduction when defending
   const stance = target.specialStates.find((s) => s.type === 'stance');
   if (stance) {
     stanceTriggered = true;
+    stanceReduced = Math.floor(remaining * 0.8);
+    remaining -= stanceReduced;
     // Remove stance (it's consumed)
     const states = (patch.specialStates ?? target.specialStates).filter((s) => s.type !== 'stance');
     patch.specialStates = states;
   }
 
   patch.currentHP = clampHP(target, target.currentHP - remaining);
-  return { finalDamage: remaining, shieldAbsorbed, patch, stanceTriggered };
+  return { finalDamage: remaining, shieldAbsorbed, stanceReduced, patch, stanceTriggered };
 }
 
 // ===== Stance Trigger =====

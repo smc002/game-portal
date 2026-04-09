@@ -4,6 +4,8 @@
 .git
 .gitignore
 *.md
+!package.json
+!package-lock.json
 !portal/**
 !games/**
 !nginx.conf

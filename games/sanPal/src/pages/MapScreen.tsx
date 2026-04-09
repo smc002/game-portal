@@ -50,7 +50,7 @@ export default function MapScreen() {
         break;
       }
       case 'boss': {
-        const bossInst = createInstance(data.generalId, act * 3 + 1);
+        const bossInst = createInstance(data.generalId, act === 1 ? 3 : act * 3 + 1);
         const escorts = data.escorts.map((id) => createInstance(id, act * 3));
         initBattle(restorePartyEnergy(party), [bossInst, ...escorts]);
         setPhase('battle');

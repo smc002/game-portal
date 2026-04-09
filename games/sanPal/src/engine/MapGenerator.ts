@@ -13,7 +13,7 @@ interface ActConfig {
 }
 
 const ACT_CONFIGS: ActConfig[] = [
-  { act: 1, layers: 8, wildStars: [1, 2], bossId: 'zhang_jiao', bossEscorts: [], earlyEasyLayers: 3 },
+  { act: 1, layers: 8, wildStars: [1, 2], bossId: 'zhang_jiao', bossEscorts: [], earlyEasyLayers: 5 },
   { act: 2, layers: 5, wildStars: [2, 3], bossId: 'dong_zhuo', bossEscorts: ['lv_bu'], earlyEasyLayers: 0 },
   { act: 3, layers: 5, wildStars: [3, 4], bossId: 'lv_bu', bossEscorts: [], earlyEasyLayers: 0 },
 ];
