@@ -2,6 +2,8 @@
   "name": "san-sdc2-monorepo",
   "private": true,
   "workspaces": [
-    "games/*"
+    "games/sanPal",
+    "games/rglike",
+    "games/superAutoSan"
   ]
 }

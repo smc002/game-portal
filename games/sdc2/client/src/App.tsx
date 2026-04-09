@@ -12,7 +12,7 @@ import EncounterModal from './components/modals/EncounterModal.js';
 import LootModal from './components/modals/LootModal.js';
 
 export default function App() {
-  const { socket, connected } = useSocket();
+  const { socket, connected, idleDisconnected, reconnect } = useSocket();
   const {
     phase, setPhase, setPlayer, patchPlayer, setMapState, patchMapState,
     addNotification, addCenterFloat, rerollData, setRerollData, setBattleData, battleEvents, battleResult, clearBattle,
@@ -121,6 +121,10 @@ export default function App() {
       addNotification('error', `遭遇巡逻NPC ${npcName}(战力:${npcPower})！`);
     });
 
+    socket.on('idle:warning', ({ seconds }) => {
+      addNotification('warning', `${seconds}秒后将因长时间未操作断开连接`);
+    });
+
     return () => {
       socket.off('lobby:login_ok');
       socket.off('lobby:error');
@@ -138,6 +142,7 @@ export default function App() {
       socket.off('loot:options');
       socket.off('map:npc_move');
       socket.off('encounter:npc_alert');
+      socket.off('idle:warning');
     };
   }, [socket, setPhase, setPlayer, patchPlayer, setMapState, patchMapState, addNotification, addCenterFloat, setRerollData, setBattleData, setEncounterData, setLootData, setSearchProgress]);
 
@@ -148,12 +153,28 @@ export default function App() {
           position: 'fixed', top: 0, left: 0, right: 0,
           background: 'linear-gradient(90deg, #1a0f0a, #3a1a0a, #1a0f0a)',
           color: '#d4a017', textAlign: 'center',
-          padding: '4px', fontSize: '12px', zIndex: 9999,
+          padding: idleDisconnected ? '12px' : '4px', fontSize: '12px', zIndex: 9999,
           borderBottom: '1px solid #5c3a21',
           fontFamily: 'var(--font-heading)',
           letterSpacing: '2px',
         }}>
-          正在连接中军大帐...
+          {idleDisconnected ? (
+            <>
+              长时间未操作，连接已断开 &nbsp;
+              <button
+                onClick={reconnect}
+                style={{
+                  background: '#5c3a21', color: '#d4a017', border: '1px solid #d4a017',
+                  padding: '2px 12px', cursor: 'pointer', fontFamily: 'inherit',
+                  letterSpacing: '1px', fontSize: '12px',
+                }}
+              >
+                重新连接
+              </button>
+            </>
+          ) : (
+            '正在连接中军大帐...'
+          )}
         </div>
       )}
       <NotificationToast />

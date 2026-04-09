@@ -65,6 +65,10 @@ export interface ServerToClientEvents {
   // NPC遭遇预警
   'encounter:npc_alert': (data: { npcId: string; npcName: string; npcPower: number }) => void;
 
+  // 空闲断开
+  'idle:warning': (data: { seconds: number }) => void;
+  'idle:disconnect': () => void;
+
   // 通知
   'notification': (data: { type: string; message: string; data?: Record<string, unknown> }) => void;
 

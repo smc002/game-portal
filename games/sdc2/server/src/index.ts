@@ -18,6 +18,11 @@ import { startNpcPatrol, stopNpcPatrol } from './npc/patrol.js';
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+/** 空闲超时（毫秒）：5分钟无操作断开 */
+const IDLE_TIMEOUT = 5 * 60 * 1000;
+/** 断开前警告提前量（毫秒）：最后30秒发警告 */
+const IDLE_WARNING_BEFORE = 30 * 1000;
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -54,6 +59,33 @@ app.get('/health', (_req, res) => {
 io.on('connection', (socket) => {
   console.log(`[连接] ${socket.id}`);
 
+  // ---- 空闲自动断开 ----
+  let idleTimer: NodeJS.Timeout;
+  let warningTimer: NodeJS.Timeout;
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    clearTimeout(warningTimer);
+    // 4分30秒后发警告
+    warningTimer = setTimeout(() => {
+      socket.emit('idle:warning', { seconds: IDLE_WARNING_BEFORE / 1000 });
+    }, IDLE_TIMEOUT - IDLE_WARNING_BEFORE);
+    // 5分钟后断开
+    idleTimer = setTimeout(() => {
+      console.log(`[空闲断开] ${socket.id}`);
+      socket.emit('idle:disconnect');
+      socket.disconnect(true);
+    }, IDLE_TIMEOUT);
+  }
+
+  // 任何客户端事件都重置空闲计时器
+  socket.use((_event, next) => {
+    resetIdleTimer();
+    next();
+  });
+
+  resetIdleTimer();
+
   // 注册各模块事件处理器
   registerLobbyHandlers(io, socket, roomManager);
   registerMovementHandlers(io, socket, roomManager);
@@ -65,6 +97,8 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     console.log(`[断开] ${socket.id} - ${reason}`);
+    clearTimeout(idleTimer);
+    clearTimeout(warningTimer);
     const player = roomManager.getPlayerBySocket(socket.id);
     if (player) {
       clearAllPlayerTimers(player.playerId);

@@ -169,6 +169,8 @@ sanSDC2-cc/
 
 | 事件名 | 数据 | 说明 |
 |--------|------|------|
+| `idle:warning` | `{seconds: number}` | 空闲断开倒计时警告（最后30秒） |
+| `idle:disconnect` | `{}` | 即将因空闲断开连接 |
 | `state:sync` | `{完整玩家可见状态}` | 全量状态同步（入局时） |
 | `state:patch` | `{差量更新}` | 增量状态更新 |
 | `map:update` | `{城池变更数据}` | 地图物资/玩家变化 |
@@ -183,7 +185,20 @@ sanSDC2-cc/
 | `encounter:npc_alert` | `{npcId, npcName, npcPower}` | 强力NPC遭遇预警 |
 | `notification` | `{type, message, data?}` | 通用提示（data.centerFloat=true走中央飘字） |
 
-### 4.2 ATB 战斗引擎（shared/battle）
+### 4.2 空闲自动断开机制
+
+为节省 SAE 部署成本（空闲实例持续计费），服务端对每个 Socket 连接维护空闲计时器：
+
+- **超时时长**：5 分钟（`IDLE_TIMEOUT = 300000ms`）
+- **触发条件**：客户端无任何事件发送（ping/pong 不算，只有 `lobby:*`、`game:*` 等业务事件才重置计时器）
+- **流程**：
+  1. 4分30秒无操作 → 服务端发送 `idle:warning`（提醒最后30秒）
+  2. 5分钟无操作 → 服务端发送 `idle:disconnect` → 强制断开连接
+  3. 客户端收到 `idle:disconnect` 后禁止自动重连，显示"长时间未操作，连接已断开"横幅 + 重新连接按钮
+- **实现**：`socket.use()` 中间件拦截所有入站事件，重置 `setTimeout`
+- **Nginx 配合**：`proxy_read_timeout` 从 86400s 降至 600s（10分钟）
+
+### 4.3 ATB 战斗引擎（shared/battle）
 
 战斗引擎为纯函数模块，不依赖任何运行时环境：
 
@@ -380,15 +395,15 @@ interface PlayerState {
 
 ### Monorepo 结构（npm workspaces）
 
-根目录 `package.json` 声明 `"workspaces": ["games/*"]`，所有子项目共享依赖（vite、react、typescript 等），统一由根目录 `package-lock.json` 锁定版本。
+根目录 `package.json` 声明纯前端游戏为 workspace，共享 vite、react、typescript 等依赖。sdc2 因有嵌套 workspaces（client/server/shared）而独立管理。
 
 ```
 sanSDC2-cc/
-├── package.json          ← workspaces: ["games/*"]
-├── package-lock.json     ← 统一 lock 文件
-├── node_modules/         ← 依赖提升到根目录
+├── package.json          ← workspaces: ["games/sanPal", "games/rglike", "games/superAutoSan"]
+├── package-lock.json     ← 纯前端游戏的统一 lock 文件
+├── node_modules/         ← 共享依赖提升到根目录
 ├── games/
-│   ├── sdc2/             ← workspace（含嵌套 workspaces: shared/client/server）
+│   ├── sdc2/             ← 独立管理（自有 workspaces: shared/client/server + 独立 package-lock.json）
 │   ├── sanPal/           ← workspace（纯前端）
 │   ├── rglike/           ← workspace（纯前端）
 │   ├── superAutoSan/     ← workspace（纯前端）
@@ -398,20 +413,21 @@ sanSDC2-cc/
 
 **开发命令**：
 ```bash
-# 根目录统一安装所有依赖
+# 根目录安装纯前端游戏共享依赖
 npm install
 
-# 启动指定游戏开发服务器
+# 启动纯前端游戏（从根目录或子目录均可）
 npm run dev -w sanpal
-npm run dev -w san-sdc2
 npm run dev -w superautosan
 npm run dev -w rglikeproject-temp
-
-# 或进入子目录运行
 cd games/sanPal && npm run dev
+
+# sdc2 独立管理
+cd games/sdc2 && npm install && npm run dev
 ```
 
-> tianjiBox 因目录结构为 `games/tianjiBox/client/`（无根 package.json），不参与 workspace，需在 `games/tianjiBox/client/` 下独立 `npm install`。
+> **sdc2** 有自己的嵌套 workspaces（shared/client/server），不参与根 workspace，需在 `games/sdc2/` 下独立 `npm install`。
+> **tianjiBox** 因目录结构为 `games/tianjiBox/client/`（无根 package.json），不参与 workspace，需在 `games/tianjiBox/client/` 下独立 `npm install`。
 
 ### 整体部署结构
 
@@ -446,11 +462,11 @@ Portal (/)            ← 静态总览页，列出所有游戏入口
 
 ### Docker 构建架构
 
-Dockerfile 采用 **共享依赖 + 多阶段构建**：
+Dockerfile 采用 **多阶段构建**，sdc2 独立构建，纯前端游戏共享依赖：
 
 ```
-deps stage        ← 根 workspace npm ci，安装所有依赖（可缓存）
-  ├── build-sdc2       ← 继承 deps，拷贝 sdc2 源码并构建
+build-sdc2        ← 独立 stage（自有 workspaces，独立 npm ci）
+deps stage        ← 根 workspace npm ci，安装纯前端共享依赖（可缓存）
   ├── build-sanpal     ← 继承 deps，拷贝 sanPal 源码并构建
   ├── build-rglike     ← 继承 deps，拷贝 rglike 源码并构建
   └── build-superautosan ← 继承 deps，拷贝 superAutoSan 源码并构建
