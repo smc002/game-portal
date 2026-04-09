@@ -34,6 +34,22 @@ RUN npm ci
 COPY games/tianjiBox/client/ ./
 RUN npm run build
 
+# ---- Build Stage: rglike ----
+FROM node:20-alpine AS build-rglike
+WORKDIR /app
+COPY games/rglike/package.json games/rglike/package-lock.json* ./
+RUN npm ci
+COPY games/rglike/ ./
+RUN npm run build
+
+# ---- Build Stage: superAutoSan ----
+FROM node:20-alpine AS build-superautosan
+WORKDIR /app
+COPY games/superAutoSan/package.json games/superAutoSan/package-lock.json* ./
+RUN npm ci
+COPY games/superAutoSan/ ./
+RUN npm run build
+
 # ---- Runtime Stage ----
 FROM node:20-alpine
 RUN apk add --no-cache nginx
@@ -53,6 +69,15 @@ COPY --from=build-sanpal /app/dist games/sanPal/dist/
 
 # tianjiBox 构建产物（纯前端静态文件）
 COPY --from=build-tianjibox /app/dist games/tianjiBox/client/dist/
+
+# zhongyi（纯静态单HTML，无需构建）
+COPY games/zhongyi/ games/zhongyi/
+
+# rglike 构建产物（纯前端静态文件）
+COPY --from=build-rglike /app/dist games/rglike/dist/
+
+# superAutoSan 构建产物（纯前端静态文件）
+COPY --from=build-superautosan /app/dist games/superAutoSan/dist/
 
 # Portal 页
 COPY portal/ portal/

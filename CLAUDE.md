@@ -24,6 +24,24 @@
 - `games/tianjiBox/docs/gearDesign.md` — 机关列表设计（兵书、算筹、符节、奇械、珍宝的属性与效果）
 - `games/tianjiBox/docs/tech_plan.md` — 技术方案（目录结构、类型定义、开发阶段记录）
 
+### zhongyi 文档
+
+- `games/zhongyi/docs/症状证型方剂表.md` — 症状-证型-方剂对照表
+- `games/zhongyi/docs/药材属性方剂表.md` — 药材属性与方剂对照表
+
+### rglike 文档
+
+- `games/rglike/docs/game-design.md` — 核心系统设计（游戏流程、阶段、招募、商店等）
+- `games/rglike/docs/hero-design.md` — 武将设计图鉴（武将属性、技能、被动）
+- `games/rglike/docs/item-design.md` — 装备设计（装备属性、效果、价格）
+
+### superAutoSan 文档
+
+- `games/superAutoSan/docs/game.md` — 核心系统设计（商店、战斗、武将表、道具表、UI）
+- `games/superAutoSan/docs/tech_plan.md` — 技术方案（架构、目录结构、类型定义、开发阶段）
+- `games/superAutoSan/docs/enemy_waves.md` — 敌方波次配置（关卡难度递增规则）
+- `games/superAutoSan/docs/sap_reference.md` — Super Auto Pets 原版数据参考
+
 ### 同步要求
 
 1. 新增/删除的系统机制必须在对应文档中体现

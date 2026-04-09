@@ -1,0 +1,38 @@
+:root {
+  /* Tier colors */
+  --tier-1: #888888;
+  --tier-2: #4caf50;
+  --tier-3: #2196f3;
+  --tier-4: #9c27b0;
+  --tier-5: #ff9800;
+  --tier-6: #ffd700;
+
+  /* UI colors */
+  --bg-dark: #1a1a2e;
+  --bg-medium: #16213e;
+  --bg-light: #0f3460;
+  --bg-card: #1e2a4a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-gold: #ffd700;
+  --text-red: #ff4444;
+  --text-green: #44ff44;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --gold-color: #ffd700;
+  --hp-color: #ff4444;
+  --atk-color: #ff9800;
+  --slot-border: #334466;
+  --slot-hover: #446688;
+  --slot-valid: #44ff44;
+  --slot-invalid: #ff4444;
+
+  /* Sizing */
+  --card-width: 80px;
+  --card-height: 100px;
+  --slot-gap: 8px;
+  --border-radius: 4px;
+
+  /* Pixel font */
+  font-family: 'Courier New', 'Noto Sans SC', monospace;
+}

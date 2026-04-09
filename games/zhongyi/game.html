@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>杏林春满 - 中医记忆游戏</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+@keyframes popIn { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-200px) rotate(720deg); opacity: 0; } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes glow { 0%,100% { box-shadow: 0 0 5px rgba(183,28,28,0.3); } 50% { box-shadow: 0 0 20px rgba(183,28,28,0.6); } }
+@keyframes timerPulse { 0%,100% { color: #b71c1c; } 50% { color: #ff5252; transform: scale(1.1); } }
+@keyframes cardFlip { 0% { transform: rotateY(0); } 100% { transform: rotateY(180deg); } }
+@keyframes cardFlipBack { 0% { transform: rotateY(180deg); } 100% { transform: rotateY(0); } }
+
+body {
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  background: #f5f0e8;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(139,90,43,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(183,28,28,0.03) 0%, transparent 50%);
+  min-height: 100vh;
+  color: #3e2723;
+}
+
+.container { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 24px 0 16px;
+  position: relative;
+}
+.header h1 {
+  font-size: 2.2em;
+  color: #b71c1c;
+  text-shadow: 2px 2px 0 rgba(183,28,28,0.1);
+  letter-spacing: 8px;
+}
+.header .subtitle {
+  font-size: 0.95em;
+  color: #8d6e63;
+  margin-top: 4px;
+  letter-spacing: 3px;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px;
+  background: linear-gradient(135deg, #fff9f0, #fff3e0);
+  border: 1px solid #d7ccc8;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1em;
+}
+.stat-icon { font-size: 1.3em; }
+.stat-value { font-weight: bold; color: #b71c1c; font-size: 1.2em; }
+.combo-fire { animation: pulse 0.6s infinite; color: #ff6f00 !important; }
+
+/* Menu */
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 20px;
+  animation: fadeIn 0.6s;
+}
+.menu-card {
+  width: 100%;
+  max-width: 500px;
+  padding: 28px;
+  background: linear-gradient(135deg, #fffdf7, #fff8ef);
+  border: 2px solid #d7ccc8;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.menu-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: #b71c1c;
+  border-radius: 4px 0 0 4px;
+}
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(62,39,35,0.12);
+  border-color: #b71c1c;
+}
+.menu-card h3 {
+  font-size: 1.4em;
+  color: #b71c1c;
+  margin-bottom: 8px;
+}
+.menu-card p {
+  color: #6d4c41;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+.menu-card .mode-icon {
+  font-size: 2em;
+  margin-bottom: 8px;
+}
+
+/* Back Button */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d7ccc8;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9em;
+  color: #6d4c41;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.back-btn:hover { background: #efebe9; border-color: #b71c1c; color: #b71c1c; }
+
+/* =================== Mode 1: Clinic =================== */
+.clinic-scene { animation: fadeIn 0.5s; }
+
+.patient-area {
+  background: linear-gradient(to bottom, #fff9f0, #fff3e0);
+  border: 2px solid #d7ccc8;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  min-height: 140px;
+  position: relative;
+}
+.patient-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.patient-avatar {
+  font-size: 3.5em;
+  animation: float 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.speech-bubble {
+  background: #fff;
+  border: 1px solid #d7ccc8;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  padding: 16px 20px;
+  font-size: 1.05em;
+  line-height: 1.8;
+  position: relative;
+  animation: slideIn 0.5s;
+  flex: 1;
+}
+.speech-bubble .category-tag {
+  display: inline-block;
+  background: #b71c1c;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.78em;
+  margin-bottom: 8px;
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.step {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85em;
+  font-weight: bold;
+  border: 2px solid #d7ccc8;
+  background: #fff;
+  color: #bcaaa4;
+  transition: all 0.3s;
+}
+.step.active { border-color: #b71c1c; background: #b71c1c; color: #fff; animation: popIn 0.3s; }
+.step.done { border-color: #2e7d32; background: #2e7d32; color: #fff; }
+.step-line { width: 40px; height: 2px; background: #d7ccc8; align-self: center; }
+
+.choices-area {
+  background: #fff;
+  border: 1px solid #e0d6cc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+.choices-title {
+  font-size: 1em;
+  color: #8d6e63;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.choices-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.choice-btn {
+  padding: 10px 20px;
+  background: linear-gradient(to bottom, #fffdf7, #f5f0e8);
+  border: 2px solid #d7ccc8;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1em;
+  color: #3e2723;
+  transition: all 0.2s;
+  position: relative;
+}
+.choice-btn:hover { border-color: #b71c1c; background: #fff3e0; transform: translateY(-2px); }
+.choice-btn.selected { border-color: #b71c1c; background: #fbe9e7; color: #b71c1c; font-weight: bold; box-shadow: 0 0 12px rgba(183,28,28,0.2); }
+.choice-btn.correct { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; animation: popIn 0.3s; }
+.choice-btn.wrong { border-color: #c62828; background: #ffebee; color: #c62828; animation: shake 0.4s; }
+.choice-btn.herb-btn { min-width: 80px; text-align: center; }
+
+.confirm-btn {
+  display: block;
+  margin: 16px auto 0;
+  padding: 12px 40px;
+  background: linear-gradient(135deg, #b71c1c, #c62828);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 2px;
+}
+.confirm-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(183,28,28,0.3); }
+.confirm-btn:disabled { background: #bdbdbd; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Feedback Overlay */
+.feedback-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s;
+}
+.feedback-card {
+  background: #fffdf7;
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  animation: popIn 0.4s;
+  border: 2px solid #d7ccc8;
+}
+.feedback-card .result-icon { font-size: 3em; margin-bottom: 12px; }
+.feedback-card h3 { font-size: 1.3em; margin-bottom: 12px; color: #3e2723; }
+.feedback-card .detail { font-size: 0.95em; color: #6d4c41; line-height: 1.8; margin-bottom: 16px; text-align: left; padding: 12px; background: #f5f0e8; border-radius: 10px; }
+.feedback-card .score-gain { font-size: 1.5em; font-weight: bold; margin: 8px 0; }
+.score-gain.good { color: #2e7d32; }
+.score-gain.bad { color: #c62828; }
+
+.next-btn {
+  padding: 10px 36px;
+  background: #b71c1c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.next-btn:hover { background: #c62828; }
+
+/* Confetti */
+.confetti-container { position: fixed; top: 50%; left: 50%; z-index: 200; pointer-events: none; }
+.confetti-piece {
+  position: absolute;
+  width: 10px; height: 10px;
+  animation: confetti 1s ease-out forwards;
+}
+
+/* =================== Mode 2: Cards =================== */
+.cards-scene { animation: fadeIn 0.5s; }
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.memory-card {
+  height: 100px;
+  perspective: 600px;
+  cursor: pointer;
+}
+.memory-card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}
+.memory-card.flipped .memory-card-inner { transform: rotateY(180deg); }
+.memory-card.matched .memory-card-inner { transform: rotateY(180deg); }
+.memory-card.matched { opacity: 0.7; pointer-events: none; }
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  font-size: 0.88em;
+  line-height: 1.4;
+}
+.card-front {
+  background: linear-gradient(135deg, #b71c1c, #c62828);
+  color: #fff;
+  font-size: 1.8em;
+  border: 2px solid #8b1a1a;
+}
+.card-back {
+  background: linear-gradient(135deg, #fffdf7, #fff3e0);
+  border: 2px solid #d7ccc8;
+  transform: rotateY(180deg);
+  color: #3e2723;
+  font-weight: bold;
+}
+.card-back.herb-card { border-color: #2e7d32; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+.card-back.prop-card { border-color: #e65100; background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+
+.cards-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.cards-info span { font-size: 1em; }
+
+/* =================== Mode 3: Rush =================== */
+.rush-scene { animation: fadeIn 0.5s; }
+.timer-bar-container {
+  height: 10px;
+  background: #e0d6cc;
+  border-radius: 5px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #c62828, #ff8f00);
+  border-radius: 5px;
+  transition: width 0.1s linear;
+}
+.timer-bar.low { background: linear-gradient(90deg, #c62828, #d32f2f); animation: glow 0.5s infinite; }
+
+.rush-question {
+  background: #fff;
+  border: 2px solid #d7ccc8;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 16px;
+  text-align: center;
+  min-height: 100px;
+}
+.rush-question .q-type {
+  display: inline-block;
+  background: #ff8f00;
+  color: #fff;
+  padding: 2px 12px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  margin-bottom: 12px;
+}
+.rush-question .q-text {
+  font-size: 1.2em;
+  line-height: 1.7;
+}
+.rush-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.rush-opt {
+  padding: 16px;
+  background: #fffdf7;
+  border: 2px solid #d7ccc8;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1em;
+  color: #3e2723;
+  transition: all 0.2s;
+  text-align: center;
+}
+.rush-opt:hover { border-color: #b71c1c; background: #fff3e0; }
+.rush-opt.r-correct { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; font-weight: bold; }
+.rush-opt.r-wrong { border-color: #c62828; background: #ffebee; color: #c62828; }
+
+.rush-score-big {
+  text-align: center;
+  font-size: 2em;
+  margin-bottom: 8px;
+}
+
+/* Game Over */
+.gameover {
+  text-align: center;
+  padding: 40px;
+  animation: fadeIn 0.5s;
+}
+.gameover h2 { font-size: 1.8em; color: #b71c1c; margin-bottom: 16px; }
+.gameover .final-score { font-size: 3em; font-weight: bold; color: #ff8f00; margin: 16px 0; }
+.gameover .stats-summary { font-size: 1em; color: #6d4c41; line-height: 2; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .header h1 { font-size: 1.6em; letter-spacing: 4px; }
+  .rush-options { grid-template-columns: 1fr; }
+  .cards-grid { grid-template-columns: repeat(3, 1fr); }
+  .patient-avatar { font-size: 2.5em; }
+  .speech-bubble { font-size: 0.95em; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>杏 林 春 满</h1>
+    <div class="subtitle">中医辨证用药记忆游戏</div>
+  </div>
+
+  <!-- Stats Bar (hidden on menu) -->
+  <div class="stats-bar hidden" id="statsBar">
+    <div class="stat-item"><span class="stat-icon">🏆</span> 得分：<span class="stat-value" id="scoreVal">0</span></div>
+    <div class="stat-item"><span class="stat-icon">🔥</span> 连击：<span class="stat-value" id="comboVal">0</span></div>
+    <div class="stat-item"><span class="stat-icon">📋</span> 题目：<span class="stat-value" id="roundVal">0/0</span></div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent"></div>
+</div>
+
+<div class="confetti-container" id="confettiBox"></div>
+
+<script>
+// =================== DATA ===================
+const CASES = [
+  { cat:"情志类", symptoms:"情绪抑郁、喜叹息、两肋胀痛、咽部异物感", syndrome:"肝气郁结", herbs:["柴胡","郁金","青皮","香附"], formula:"逍遥散", avatar:"😔" },
+  { cat:"情志类", symptoms:"烦躁易怒、头晕目眩、口苦口干、面红目赤", syndrome:"肝火上炎", herbs:["龙胆草","栀子","黄芩","夏枯草"], formula:"龙胆泻肝汤", avatar:"😡" },
+  { cat:"情志类", symptoms:"失眠多梦、心悸易惊、神疲食少、面色萎黄", syndrome:"心脾两虚", herbs:["远志","酸枣仁","茯苓","龙眼肉"], formula:"归脾汤", avatar:"😰" },
+  { cat:"脾胃类", symptoms:"脘腹冷痛、喜温喜按、大便稀溏、呕吐清水", syndrome:"脾胃虚寒", herbs:["干姜","党参","白术","炙甘草"], formula:"理中丸", avatar:"🥶" },
+  { cat:"脾胃类", symptoms:"胃脘灼痛、消谷善饥、口臭、牙龈肿痛", syndrome:"胃火炽盛", herbs:["石膏","知母","地黄","麦冬"], formula:"玉女煎", avatar:"🤢" },
+  { cat:"脾胃类", symptoms:"食欲不振、腹胀嗳气、呕吐酸腐、大便酸臭", syndrome:"饮食积滞", herbs:["山楂","神曲","麦芽","莱菔子"], formula:"保和丸", avatar:"😣" },
+  { cat:"肺系类", symptoms:"咳嗽痰稀白、畏寒怕风、鼻塞流清涕", syndrome:"风寒犯肺", herbs:["麻黄","苦杏仁","苏叶","生姜"], formula:"三拗汤", avatar:"🤧" },
+  { cat:"肺系类", symptoms:"咳嗽痰稠色黄、发热、口渴、咽痛", syndrome:"风热犯肺", herbs:["金银花","连翘","薄荷","桔梗"], formula:"银翘散", avatar:"🤒" },
+  { cat:"肺系类", symptoms:"干咳无痰、或痰中带血、口干舌燥、午后潮热", syndrome:"肺阴不足", herbs:["百合","生地","麦冬","玄参"], formula:"百合固金汤", avatar:"😮‍💨" },
+  { cat:"虚损类", symptoms:"畏寒肢冷、腰膝酸软、小便清长、精神萎靡", syndrome:"肾阳虚衰", herbs:["附子","肉桂","鹿角胶","杜仲"], formula:"右归丸", avatar:"😩" },
+  { cat:"虚损类", symptoms:"潮热盗汗、五心烦热、腰酸腿软、耳鸣", syndrome:"肾阴亏损", herbs:["熟地黄","山茱萸","泽泻","牡丹皮"], formula:"六味地黄丸", avatar:"😓" },
+  { cat:"气血类", symptoms:"气短懒言、语声低微、自汗、极易感冒", syndrome:"肺气虚损", herbs:["黄芪","人参","防风","白术"], formula:"玉屏风散", avatar:"😶" },
+  { cat:"气血类", symptoms:"唇色发紫、身体有固定痛处、皮肤干枯、舌有瘀点", syndrome:"瘀血内阻", herbs:["桃仁","红花","当归","赤芍"], formula:"血府逐瘀汤", avatar:"🫥" },
+];
+
+const HERBS = [
+  { name:"人参", prop:"微温；甘、苦", effect:"大补元气、气虚欲脱、脾虚泄泻", formula:"生脉散" },
+  { name:"黄芪", prop:"微温；甘", effect:"补气升阳、固表止汗、托毒生肌", formula:"补中益气汤" },
+  { name:"当归", prop:"温；甘、辛", effect:"补血活血、调经止痛、润肠通便", formula:"四物汤" },
+  { name:"熟地黄", prop:"微温；甘", effect:"滋阴补血、益精填髓", formula:"六味地黄丸" },
+  { name:"附子", prop:"大热；辛、甘 (有毒)", effect:"回阳救逆、补火助阳、散寒止痛", formula:"四逆汤" },
+  { name:"柴胡", prop:"微寒；苦、辛", effect:"疏肝解郁、升阳举陷、和解少阳", formula:"小柴胡汤" },
+  { name:"黄连", prop:"寒；苦", effect:"清热燥湿、泻火解毒", formula:"黄连解毒汤" },
+  { name:"半夏", prop:"温；辛 (需炮制)", effect:"燥湿化痰、降逆止呕、消痞散结", formula:"二陈汤" },
+  { name:"金银花", prop:"寒；甘", effect:"清热解毒、凉散风热", formula:"银翘散" },
+  { name:"酸枣仁", prop:"平；甘、酸", effect:"养心安神、敛汗、生津", formula:"酸枣仁汤" },
+  { name:"石膏", prop:"大寒；辛、甘", effect:"清热泻火、除烦止渴", formula:"白虎汤" },
+  { name:"大黄", prop:"寒；苦", effect:"泻下攻积、清解酷热、活血化瘀", formula:"大承气汤" },
+  { name:"桃仁", prop:"平；苦、甘", effect:"活血祛瘀、润肠通便、止咳平喘", formula:"桃核承气汤" },
+  { name:"白术", prop:"温；甘、苦", effect:"健脾益气、燥湿利水、止汗安胎", formula:"四君子汤" },
+  { name:"茯苓", prop:"平；甘、淡", effect:"利水渗湿、健脾、宁心安神", formula:"五苓散" },
+  { name:"桂枝", prop:"温；辛、甘", effect:"发汗解肌、温通经脉、助阳化气", formula:"桂枝汤" },
+  { name:"百合", prop:"微寒；甘", effect:"养阴润肺、清心安神", formula:"百合地黄汤" },
+  { name:"龙胆草", prop:"寒；苦", effect:"清翳、泻肝胆火、除下焦湿热", formula:"龙胆泻肝汤" },
+];
+
+// All unique herb names for distractor pool
+const ALL_HERBS = [...new Set(CASES.flatMap(c => c.herbs).concat(HERBS.map(h => h.name)))];
+
+// =================== STATE ===================
+let state = { mode: 'menu', score: 0, combo: 0, round: 0, totalRounds: 0 };
+
+// =================== UTILS ===================
+function shuffle(arr) { const a = [...arr]; for(let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function pick(arr, n) { return shuffle(arr).slice(0, n); }
+function $(id) { return document.getElementById(id); }
+function showStats(show) { $('statsBar').classList.toggle('hidden', !show); }
+function updateStats() {
+  $('scoreVal').textContent = state.score;
+  $('comboVal').textContent = state.combo;
+  $('comboVal').classList.toggle('combo-fire', state.combo >= 3);
+  $('roundVal').textContent = `${state.round}/${state.totalRounds}`;
+}
+
+function spawnConfetti() {
+  const box = $('confettiBox');
+  const colors = ['#b71c1c','#ff8f00','#2e7d32','#1565c0','#6a1b9a','#e65100'];
+  for(let i = 0; i < 20; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left: ${(Math.random()-0.5)*200}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius: ${Math.random()>0.5 ? '50%' : '2px'};
+      animation-duration: ${0.6+Math.random()*0.6}s;
+      animation-delay: ${Math.random()*0.2}s;
+    `;
+    box.appendChild(el);
+  }
+  setTimeout(() => box.innerHTML = '', 1500);
+}
+
+// =================== MENU ===================
+function showMenu() {
+  state = { mode:'menu', score:0, combo:0, round:0, totalRounds:0 };
+  showStats(false);
+  $('mainContent').innerHTML = `
+    <div class="menu">
+      <div class="menu-card" onclick="startClinic()">
+        <div class="mode-icon">🏥</div>
+        <h3>坐堂问诊</h3>
+        <p>患者上门求医，你需要辨别证型、选取药材、开出方剂。<br>三步全对可获满分，错误后会显示正确答案帮助记忆。</p>
+      </div>
+      <div class="menu-card" onclick="startCards()">
+        <div class="mode-icon">🃏</div>
+        <h3>药材辨识</h3>
+        <p>翻转卡片，将药材名称与其药性功效一一配对。<br>考验你对18味核心药材的熟悉程度！</p>
+      </div>
+      <div class="menu-card" onclick="startRush()">
+        <div class="mode-icon">⚡</div>
+        <h3>急诊挑战</h3>
+        <p>限时快答！随机出现关于症状、药材、方剂的题目。<br>答对加时间，答错扣时间，挑战最高分！</p>
+      </div>
+    </div>`;
+}
+
+// =================== MODE 1: CLINIC ===================
+let clinic = {};
+
+function startClinic() {
+  state.mode = 'clinic';
+  state.score = 0; state.combo = 0;
+  state.totalRounds = CASES.length;
+  state.round = 0;
+  clinic.queue = shuffle(CASES);
+  clinic.idx = 0;
+  showStats(true);
+  updateStats();
+  nextPatient();
+}
+
+function nextPatient() {
+  if(clinic.idx >= clinic.queue.length) { return showClinicResult(); }
+  state.round = clinic.idx + 1;
+  updateStats();
+  clinic.current = clinic.queue[clinic.idx];
+  clinic.step = 1;
+  clinic.stepScores = [0,0,0];
+  renderClinic();
+}
+
+function renderClinic() {
+  const c = clinic.current;
+  const mc = $('mainContent');
+
+  mc.innerHTML = `
+    <button class="back-btn" onclick="showMenu()">← 返回</button>
+    <div class="clinic-scene">
+      <div class="patient-area">
+        <div class="patient-row">
+          <div class="patient-avatar">${c.avatar}</div>
+          <div class="speech-bubble">
+            <span class="category-tag">${c.cat}</span><br>
+            大夫，我最近${c.symptoms.split('、').join('，还')}……
+          </div>
+        </div>
+      </div>
+      <div class="step-indicator">
+        <div class="step ${clinic.step>=1?'active':''} ${clinic.step>1?'done':''}">辨</div>
+        <div class="step-line"></div>
+        <div class="step ${clinic.step>=2?'active':''} ${clinic.step>2?'done':''}">药</div>
+        <div class="step-line"></div>
+        <div class="step ${clinic.step>=3?'active':''}">方</div>
+      </div>
+      <div id="stepContent"></div>
+    </div>`;
+
+  if(clinic.step === 1) renderStep1();
+  else if(clinic.step === 2) renderStep2();
+  else if(clinic.step === 3) renderStep3();
+}
+
+function renderStep1() {
+  const c = clinic.current;
+  const syndromes = shuffle(CASES.map(x => x.syndrome));
+  const unique = [...new Set(syndromes)].slice(0, 6);
+  if(!unique.includes(c.syndrome)) { unique[Math.floor(Math.random()*unique.length)] = c.syndrome; }
+  const options = shuffle(unique);
+
+  $('stepContent').innerHTML = `
+    <div class="choices-area">
+      <div class="choices-title">第一步：辨证 —— 该患者属于何种证型？</div>
+      <div class="choices-grid">
+        ${options.map(s => `<button class="choice-btn" onclick="checkSyndrome(this,'${s}')">${s}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function checkSyndrome(btn, chosen) {
+  const c = clinic.current;
+  const correct = chosen === c.syndrome;
+  document.querySelectorAll('.choices-grid .choice-btn').forEach(b => b.disabled = true);
+
+  if(correct) {
+    btn.classList.add('correct');
+    clinic.stepScores[0] = 1;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.choices-grid .choice-btn').forEach(b => {
+      if(b.textContent === c.syndrome) b.classList.add('correct');
+    });
+  }
+  setTimeout(() => { clinic.step = 2; renderClinic(); }, 800);
+}
+
+function renderStep2() {
+  const c = clinic.current;
+  // correct herbs + distractors
+  const distractors = ALL_HERBS.filter(h => !c.herbs.includes(h));
+  const pool = shuffle([...c.herbs, ...pick(distractors, 6)]);
+  clinic.selectedHerbs = new Set();
+
+  $('stepContent').innerHTML = `
+    <div class="choices-area">
+      <div class="choices-title">第二步：选药 —— 请选出4味对证药材</div>
+      <div class="choices-grid" id="herbGrid">
+        ${pool.map(h => `<button class="choice-btn herb-btn" onclick="toggleHerb(this,'${h}')">${h}</button>`).join('')}
+      </div>
+      <button class="confirm-btn" id="confirmHerbs" onclick="checkHerbs()" disabled>确认选药（已选 0/4）</button>
+    </div>`;
+}
+
+function toggleHerb(btn, name) {
+  if(clinic.selectedHerbs.has(name)) {
+    clinic.selectedHerbs.delete(name);
+    btn.classList.remove('selected');
+  } else {
+    if(clinic.selectedHerbs.size >= 4) return;
+    clinic.selectedHerbs.add(name);
+    btn.classList.add('selected');
+  }
+  const n = clinic.selectedHerbs.size;
+  const cb = $('confirmHerbs');
+  cb.disabled = n !== 4;
+  cb.textContent = `确认选药（已选 ${n}/4）`;
+}
+
+function checkHerbs() {
+  const c = clinic.current;
+  const chosen = clinic.selectedHerbs;
+  const correctSet = new Set(c.herbs);
+  let correctCount = 0;
+
+  document.querySelectorAll('#herbGrid .herb-btn').forEach(btn => {
+    const name = btn.textContent;
+    btn.disabled = true;
+    if(correctSet.has(name)) {
+      btn.classList.add('correct');
+      if(chosen.has(name)) correctCount++;
+    } else if(chosen.has(name)) {
+      btn.classList.add('wrong');
+    }
+  });
+
+  clinic.stepScores[1] = correctCount === 4 ? 1 : 0;
+  $('confirmHerbs').classList.add('hidden');
+  setTimeout(() => { clinic.step = 3; renderClinic(); }, 1000);
+}
+
+function renderStep3() {
+  const c = clinic.current;
+  const formulas = shuffle(CASES.map(x => x.formula));
+  const unique = [...new Set(formulas)].slice(0, 5);
+  if(!unique.includes(c.formula)) { unique[Math.floor(Math.random()*unique.length)] = c.formula; }
+  const options = shuffle(unique);
+
+  $('stepContent').innerHTML = `
+    <div class="choices-area">
+      <div class="choices-title">第三步：开方 —— 该患者应服用哪个经典方剂？</div>
+      <div class="choices-grid">
+        ${options.map(f => `<button class="choice-btn" onclick="checkFormula(this,'${f}')">${f}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function checkFormula(btn, chosen) {
+  const c = clinic.current;
+  const correct = chosen === c.formula;
+  document.querySelectorAll('.choices-grid .choice-btn').forEach(b => b.disabled = true);
+
+  if(correct) {
+    btn.classList.add('correct');
+    clinic.stepScores[2] = 1;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.choices-grid .choice-btn').forEach(b => {
+      if(b.textContent === c.formula) b.classList.add('correct');
+    });
+  }
+  setTimeout(() => showRoundFeedback(), 600);
+}
+
+function showRoundFeedback() {
+  const c = clinic.current;
+  const total = clinic.stepScores.reduce((a,b) => a+b, 0);
+  const perfect = total === 3;
+
+  if(perfect) {
+    state.combo++;
+    const bonus = state.combo >= 3 ? state.combo * 2 : 0;
+    state.score += 30 + bonus;
+    spawnConfetti();
+  } else {
+    state.combo = 0;
+    state.score += total * 10;
+  }
+  updateStats();
+
+  const comboText = state.combo >= 3 ? `<br>🔥 ${state.combo}连击！额外 +${state.combo*2}分` : '';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'feedback-overlay';
+  overlay.innerHTML = `
+    <div class="feedback-card">
+      <div class="result-icon">${perfect ? '🎉' : total >= 2 ? '😊' : total >= 1 ? '🤔' : '📖'}</div>
+      <h3>${perfect ? '完美诊断！' : total >= 2 ? '不错，继续加油！' : '需要多复习哦'}</h3>
+      <div class="score-gain ${perfect?'good':'bad'}">
+        ${perfect ? '+30' : `+${total*10}`}分${comboText}
+      </div>
+      <div class="detail">
+        <strong>【${c.syndrome}】</strong><br>
+        症状：${c.symptoms}<br>
+        用药：${c.herbs.join('、')}<br>
+        方剂：${c.formula}
+      </div>
+      <button class="next-btn" onclick="this.closest('.feedback-overlay').remove();clinic.idx++;nextPatient();">
+        ${clinic.idx + 1 >= clinic.queue.length ? '查看总结' : '下一位患者 →'}
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function showClinicResult() {
+  showStats(false);
+  $('mainContent').innerHTML = `
+    <div class="gameover">
+      <h2>今日坐诊结束</h2>
+      <div class="final-score">${state.score} 分</div>
+      <div class="stats-summary">
+        共诊治 ${CASES.length} 位患者<br>
+        ${state.score >= CASES.length * 25 ? '🏅 杏林高手！对证型和方剂掌握得很好！' :
+          state.score >= CASES.length * 15 ? '📚 初窥门径，多加练习会更好！' :
+          '💪 革命尚未成功，同志仍需努力！'}
+      </div>
+      <br>
+      <button class="next-btn" onclick="startClinic()">再次出诊</button>
+      <button class="next-btn" style="margin-left:12px;background:#6d4c41;" onclick="showMenu()">返回医馆</button>
+    </div>`;
+}
+
+// =================== MODE 2: CARDS ===================
+let cards = {};
+
+function startCards() {
+  state.mode = 'cards';
+  state.score = 0; state.combo = 0;
+  showStats(false);
+
+  // Pick 6 random herbs, create pairs: name <-> effect
+  const selected = pick(HERBS, 6);
+  const pairs = [];
+  selected.forEach((h, i) => {
+    pairs.push({ id: i, type: 'herb', text: h.name, pairId: i });
+    pairs.push({ id: i, type: 'prop', text: `${h.prop}\n${h.effect}`, pairId: i });
+  });
+
+  cards.deck = shuffle(pairs);
+  cards.flipped = [];
+  cards.matched = 0;
+  cards.total = selected.length;
+  cards.attempts = 0;
+  cards.locked = false;
+
+  renderCards();
+}
+
+function renderCards() {
+  $('mainContent').innerHTML = `
+    <button class="back-btn" onclick="showMenu()">← 返回</button>
+    <div class="cards-scene">
+      <div class="cards-info">
+        <span>🃏 已配对：<strong id="cardMatched">${cards.matched}</strong> / ${cards.total}</span>
+        <span>🔄 翻牌次数：<strong id="cardAttempts">${cards.attempts}</strong></span>
+      </div>
+      <div class="cards-grid" id="cardsGrid">
+        ${cards.deck.map((c, idx) => `
+          <div class="memory-card ${c.isMatched ? 'matched' : ''}" data-idx="${idx}" onclick="flipCard(this, ${idx})">
+            <div class="memory-card-inner">
+              <div class="card-face card-front">药</div>
+              <div class="card-face card-back ${c.type === 'herb' ? 'herb-card' : 'prop-card'}">${c.text.replace('\n','<br>')}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function flipCard(el, idx) {
+  if(cards.locked) return;
+  if(el.classList.contains('flipped') || el.classList.contains('matched')) return;
+
+  el.classList.add('flipped');
+  cards.flipped.push({ el, idx, card: cards.deck[idx] });
+
+  if(cards.flipped.length === 2) {
+    cards.locked = true;
+    cards.attempts++;
+    if($('cardAttempts')) $('cardAttempts').textContent = cards.attempts;
+
+    const [a, b] = cards.flipped;
+    if(a.card.pairId === b.card.pairId && a.card.type !== b.card.type) {
+      // Match!
+      setTimeout(() => {
+        a.el.classList.add('matched');
+        b.el.classList.add('matched');
+        cards.deck[a.idx].isMatched = true;
+        cards.deck[b.idx].isMatched = true;
+        cards.matched++;
+        if($('cardMatched')) $('cardMatched').textContent = cards.matched;
+        cards.flipped = [];
+        cards.locked = false;
+        spawnConfetti();
+        if(cards.matched === cards.total) {
+          setTimeout(showCardsResult, 500);
+        }
+      }, 400);
+    } else {
+      setTimeout(() => {
+        a.el.classList.remove('flipped');
+        b.el.classList.remove('flipped');
+        cards.flipped = [];
+        cards.locked = false;
+      }, 900);
+    }
+  }
+}
+
+function showCardsResult() {
+  const rating = cards.attempts <= cards.total + 2 ? '🏅 过目不忘！' :
+                 cards.attempts <= cards.total * 2 ? '👍 记忆不错！' : '💪 多练几次会更好！';
+  $('mainContent').innerHTML = `
+    <div class="gameover">
+      <h2>药材辨识完成！</h2>
+      <div class="final-score">${cards.attempts} 次翻牌</div>
+      <div class="stats-summary">
+        成功配对 ${cards.total} 组药材<br>
+        ${rating}
+      </div>
+      <br>
+      <button class="next-btn" onclick="startCards()">再来一局</button>
+      <button class="next-btn" style="margin-left:12px;background:#6d4c41;" onclick="showMenu()">返回医馆</button>
+    </div>`;
+}
+
+// =================== MODE 3: RUSH ===================
+let rush = {};
+
+function generateRushQ() {
+  const types = ['syndrome', 'herb', 'formula', 'herbProp'];
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  if(type === 'syndrome') {
+    const c = CASES[Math.floor(Math.random() * CASES.length)];
+    const wrongs = shuffle(CASES.filter(x => x.syndrome !== c.syndrome).map(x => x.syndrome)).slice(0,3);
+    return {
+      label: '辨证', text: `患者表现为「${c.symptoms}」，应诊断为？`,
+      options: shuffle([c.syndrome, ...wrongs]), answer: c.syndrome
+    };
+  }
+  if(type === 'formula') {
+    const c = CASES[Math.floor(Math.random() * CASES.length)];
+    const wrongs = shuffle(CASES.filter(x => x.formula !== c.formula).map(x => x.formula)).slice(0,3);
+    return {
+      label: '方剂', text: `「${c.syndrome}」证应选用哪个经典方剂？`,
+      options: shuffle([c.formula, ...wrongs]), answer: c.formula
+    };
+  }
+  if(type === 'herb') {
+    const c = CASES[Math.floor(Math.random() * CASES.length)];
+    const correctHerb = c.herbs[Math.floor(Math.random() * c.herbs.length)];
+    const wrongs = shuffle(ALL_HERBS.filter(h => !c.herbs.includes(h))).slice(0,3);
+    return {
+      label: '用药', text: `以下哪味药材可用于治疗「${c.syndrome}」？`,
+      options: shuffle([correctHerb, ...wrongs]), answer: correctHerb
+    };
+  }
+  // herbProp
+  const h = HERBS[Math.floor(Math.random() * HERBS.length)];
+  const wrongs = shuffle(HERBS.filter(x => x.name !== h.name).map(x => x.prop)).slice(0,3);
+  return {
+    label: '药性', text: `「${h.name}」的药性是？`,
+    options: shuffle([h.prop, ...wrongs]), answer: h.prop
+  };
+}
+
+function startRush() {
+  state.mode = 'rush';
+  rush.score = 0;
+  rush.timeLeft = 30;
+  rush.maxTime = 30;
+  rush.answered = 0;
+  rush.correct = 0;
+  rush.question = null;
+  rush.answered_this = false;
+  showStats(false);
+  renderRush();
+  nextRushQ();
+  rush.timer = setInterval(rushTick, 100);
+}
+
+function rushTick() {
+  rush.timeLeft -= 0.1;
+  if(rush.timeLeft <= 0) {
+    rush.timeLeft = 0;
+    clearInterval(rush.timer);
+    showRushResult();
+    return;
+  }
+  const pct = (rush.timeLeft / rush.maxTime) * 100;
+  const bar = document.getElementById('rushBar');
+  if(bar) {
+    bar.style.width = pct + '%';
+    bar.classList.toggle('low', rush.timeLeft < 5);
+  }
+  const tv = document.getElementById('rushTimeVal');
+  if(tv) tv.textContent = rush.timeLeft.toFixed(1);
+}
+
+function renderRush() {
+  $('mainContent').innerHTML = `
+    <button class="back-btn" onclick="clearInterval(rush.timer);showMenu()">← 返回</button>
+    <div class="rush-scene">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span>⏱ <strong id="rushTimeVal">${rush.timeLeft.toFixed(1)}</strong>s</span>
+        <span>🏆 <strong id="rushScoreVal">${rush.score}</strong>分</span>
+        <span>✅ <strong id="rushCorrectVal">${rush.correct}/${rush.answered}</strong></span>
+      </div>
+      <div class="timer-bar-container"><div class="timer-bar" id="rushBar" style="width:100%"></div></div>
+      <div class="rush-question" id="rushQArea"></div>
+      <div class="rush-options" id="rushOpts"></div>
+    </div>`;
+}
+
+function nextRushQ() {
+  rush.question = generateRushQ();
+  rush.answered_this = false;
+  const qa = document.getElementById('rushQArea');
+  const opts = document.getElementById('rushOpts');
+  if(!qa || !opts) return;
+
+  qa.innerHTML = `<span class="q-type">${rush.question.label}</span><div class="q-text">${rush.question.text}</div>`;
+  opts.innerHTML = rush.question.options.map((o, i) =>
+    `<button class="rush-opt" onclick="rushAnswer(this,${i})">${o}</button>`
+  ).join('');
+}
+
+function rushAnswer(btn, idx) {
+  if(rush.answered_this) return;
+  rush.answered_this = true;
+  rush.answered++;
+
+  const q = rush.question;
+  const chosen = q.options[idx];
+  const correct = chosen === q.answer;
+
+  document.querySelectorAll('.rush-opt').forEach(b => {
+    b.disabled = true;
+    if(b.textContent === q.answer) b.classList.add('r-correct');
+  });
+
+  if(correct) {
+    rush.correct++;
+    rush.score += 10;
+    rush.timeLeft = Math.min(rush.timeLeft + 3, rush.maxTime);
+    spawnConfetti();
+  } else {
+    btn.classList.add('r-wrong');
+    rush.timeLeft = Math.max(rush.timeLeft - 3, 0);
+  }
+
+  const sv = document.getElementById('rushScoreVal');
+  const cv = document.getElementById('rushCorrectVal');
+  if(sv) sv.textContent = rush.score;
+  if(cv) cv.textContent = `${rush.correct}/${rush.answered}`;
+
+  setTimeout(nextRushQ, correct ? 400 : 900);
+}
+
+function showRushResult() {
+  const accuracy = rush.answered > 0 ? Math.round(rush.correct / rush.answered * 100) : 0;
+  $('mainContent').innerHTML = `
+    <div class="gameover">
+      <h2>急诊结束！</h2>
+      <div class="final-score">${rush.score} 分</div>
+      <div class="stats-summary">
+        回答 ${rush.answered} 题，答对 ${rush.correct} 题<br>
+        正确率 ${accuracy}%<br>
+        ${rush.score >= 100 ? '🏅 急诊之星！反应又快又准！' :
+          rush.score >= 50 ? '👍 身手不凡，继续挑战！' :
+          '💪 熟能生巧，再来一次！'}
+      </div>
+      <br>
+      <button class="next-btn" onclick="startRush()">再次挑战</button>
+      <button class="next-btn" style="margin-left:12px;background:#6d4c41;" onclick="showMenu()">返回医馆</button>
+    </div>`;
+}
+
+// =================== INIT ===================
+showMenu();
+</script>
+</body>
+</html>
