@@ -56,3 +56,36 @@ export function shuffle<T>(arr: T[]): T[] {
   }
   return result;
 }
+
+/**
+ * Compute a level-aware ability description.
+ * The static `abilityDesc` reflects Lv.1 numbers; this function scales the
+ * common patterns by the given level. Safe to use on any general.
+ */
+export function getLeveledAbilityDesc(def: GeneralDef, level: number): string {
+  if (level <= 1) return def.abilityDesc;
+  let s = def.abilityDesc;
+
+  // +N/+M  →  +(N*L)/+(M*L)
+  s = s.replace(/\+(\d+)\/\+(\d+)/g, (_m, a: string, b: string) => {
+    return `+${Number(a) * level}/+${Number(b) * level}`;
+  });
+
+  // +N (ATK|HP|金币|经验|经验值)  →  +(N*L) ...
+  s = s.replace(/\+(\d+)\s*(ATK|HP|金币|经验值|经验)/g, (_m, n: string, unit: string) => {
+    return `+${Number(n) * level} ${unit}`;
+  });
+
+  // 造成N伤害  →  造成(N*L)伤害
+  s = s.replace(/造成(\d+)伤害/g, (_m, n: string) => {
+    return `造成${Number(n) * level}伤害`;
+  });
+
+  // N%  →  (N*L)% (capped at 100)
+  s = s.replace(/(\d+)%/g, (_m, n: string) => {
+    return `${Math.min(100, Number(n) * level)}%`;
+  });
+
+  return s;
+}
+

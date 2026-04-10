@@ -29,6 +29,7 @@ interface ShopState {
   setLastBattleLost: (lost: boolean) => void;
   clearLevelUpReward: () => void;
   buyRewardPet: (rewardIdx: number, team: GeneralInstance[], teamIdx: number) => { team: GeneralInstance[]; events: string[] } | null;
+  mergeTeamPets: (team: GeneralInstance[], fromIdx: number, toIdx: number) => { team: GeneralInstance[]; events: string[] };
   executeEndOfTurn: (team: GeneralInstance[], tier: number) => { team: GeneralInstance[]; events: string[] };
 }
 
@@ -196,7 +197,7 @@ function executeShopTrigger(
 
       // === eatsFood (self) ===
       case 'zhugejin': { // Seal: 2*level random friends +1/+1
-        const others = team.filter((t, idx) => idx !== i);
+        const others = team.filter((_t, idx) => idx !== i);
         const picks = randomPick(others, 2 * lvl);
         for (const t of picks) {
           t.atk = Math.min(MAX_STAT, t.atk + 1);
@@ -228,6 +229,37 @@ function offerLevelUpReward(
   const rewards = randomPick(nextTierPets, 2);
   set({ levelUpReward: rewards });
   events.push(`升级奖励：从 Tier ${nextTier} 中选择一位武将！`);
+}
+
+/**
+ * Apply all side effects of a pet leveling up:
+ *   - 教头(jiaotou) levelUp: 全队 +level/+level
+ *   - Offer level-up reward (only for Lv1→Lv2, not Lv2→Lv3)
+ */
+function applyLevelUpEffects(
+  target: GeneralInstance,
+  newTeam: GeneralInstance[],
+  events: string[],
+  state: ShopState,
+  set: (partial: Partial<ShopState> | ((s: ShopState) => Partial<ShopState>)) => void,
+  offerReward: boolean,
+) {
+  // 教头 levelUp trigger: 所有友方 +level/+level
+  if (target.defId === 'jiaotou') {
+    for (const m of newTeam) {
+      if (m !== target) {
+        m.atk = Math.min(MAX_STAT, m.atk + target.level);
+        m.hp = Math.min(MAX_STAT, m.hp + target.level);
+        m.maxHp = Math.min(MAX_STAT, m.maxHp + target.level);
+      }
+    }
+    events.push(`教头: 练兵 所有友方 +${target.level}/${target.level}`);
+  }
+  // Offer reward only for Lv1→Lv2
+  if (offerReward) {
+    const tDef = generals.find((d) => d.id === target.defId);
+    if (tDef) offerLevelUpReward(tDef.tier, state, events, set);
+  }
 }
 
 export const useShopStore = create<ShopState>((set, get) => ({
@@ -303,6 +335,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
 
     const events: string[] = [];
     const newTeam = [...team];
+    let purchased: GeneralInstance | null = null; // the pet that was bought/merged
 
     const target = newTeam[teamIdx];
     if (target && target.defId === def.id) {
@@ -318,78 +351,65 @@ export const useShopStore = create<ShopState>((set, get) => ({
       if (target.level === 1 && target.xp >= XP_TO_LV2) {
         target.level = 2;
         events.push(`${def.name} 升级到 Lv.2！`);
-        // Level-up reward: add 2 bonus slots from next tier to shop
-        offerLevelUpReward(def.tier, state, events, set);
+        applyLevelUpEffects(target, newTeam, events, state, set, true);
       } else if (target.level === 2 && target.xp >= XP_TO_LV3) {
         target.level = 3;
         events.push(`${def.name} 升级到 Lv.3！`);
+        applyLevelUpEffects(target, newTeam, events, state, set, false);
       }
       events.push(`合并 ${def.name}`);
-
-      // Trigger: levelUp for 教头 (Fish)
-      if ((target.level === 2 && target.xp === XP_TO_LV2) || (target.level === 3 && target.xp === XP_TO_LV3)) {
-        if (target.defId === 'jiaotou') {
-          for (const t of newTeam) {
-            if (t !== target) {
-              t.atk = Math.min(MAX_STAT, t.atk + 1 * target.level);
-              t.hp = Math.min(MAX_STAT, t.hp + 1 * target.level);
-              t.maxHp = Math.min(MAX_STAT, t.maxHp + 1 * target.level);
-            }
-          }
-          events.push(`教头: 练兵 所有友方 +${target.level}/${target.level}`);
-        }
-      }
+      purchased = target;
     } else if (!target && newTeam.length < MAX_TEAM_SIZE) {
       const bonus = state.cannedFoodBonus;
       const inst = createInstance(def, bonus.atk, bonus.hp);
       newTeam.splice(teamIdx, 0, inst);
       events.push(`购买 ${def.name}`);
-
-      // Buy triggers
-      // 军需官 (Otter): random friend +1*level/+1*level
-      if (def.id === 'junxuguan') {
-        const others = newTeam.filter((t) => t !== inst);
-        const picks = randomPick(others, inst.level);
-        for (const t of picks) {
-          t.atk = Math.min(MAX_STAT, t.atk + 1);
-          t.hp = Math.min(MAX_STAT, t.hp + 1);
-          t.maxHp = Math.min(MAX_STAT, t.maxHp + 1);
-        }
-        if (picks.length > 0) events.push(`军需官: 补给分配 ${picks.length}个友方 +1/+1`);
-      }
-      // 徐庶 (Snail): if lost last battle, all friends +1*level/+1*level
-      if (def.id === 'xushu' && state.lastBattleLost) {
-        for (const t of newTeam) {
-          if (t !== inst) {
-            t.atk = Math.min(MAX_STAT, t.atk + 1 * inst.level);
-            t.hp = Math.min(MAX_STAT, t.hp + 1 * inst.level);
-            t.maxHp = Math.min(MAX_STAT, t.maxHp + 1 * inst.level);
-          }
-        }
-        events.push(`徐庶: 雪中送炭 所有友方 +${inst.level}/${inst.level}`);
-      }
-      // 孙尚香 (Cow): replace items with 2 free milk (+1/+2)
-      if (def.id === 'sunshangxiang') {
-        const freeMilk: ItemDef = {
-          id: 'junliang_free', name: '军粮', originalName: 'Milk',
-          tier: 1, cost: 0, type: 'stat', description: '+1/+2（免费）',
-        };
-        set({ itemSlots: [freeMilk, freeMilk] });
-        events.push(`孙尚香: 嫁妆 商店道具变为2个免费军粮`);
-      }
-
-      // friendSummoned triggers for existing team members
-      for (const t of newTeam) {
-        if (t === inst) continue;
-        const tDef = generals.find((d) => d.id === t.defId);
-        if (!tDef) continue;
-        // 糜竺 triggers on friendSold, not friendSummoned — skip
-      }
+      purchased = inst;
     } else if (!target) {
-      newTeam[teamIdx] = createInstance(def, state.cannedFoodBonus.atk, state.cannedFoodBonus.hp);
+      const inst = createInstance(def, state.cannedFoodBonus.atk, state.cannedFoodBonus.hp);
+      newTeam[teamIdx] = inst;
       events.push(`购买 ${def.name}`);
+      purchased = inst;
     } else {
       return null;
+    }
+
+    // 孙尚香 (Cow): only when SHE is bought (one-time shop replace)
+    if (purchased && def.id === 'sunshangxiang') {
+      const freeMilk: ItemDef = {
+        id: 'junliang_free', name: '军粮', originalName: 'Milk',
+        tier: 1, cost: 0, type: 'stat', description: '+1/+2（免费）',
+      };
+      set({ itemSlots: [freeMilk, freeMilk] });
+      events.push(`孙尚香: 嫁妆 商店道具变为2个免费军粮`);
+    }
+
+    // Team-wide buy triggers — fire for ALL matching members on EVERY purchase
+    if (purchased) {
+      for (const member of newTeam) {
+        // 军需官 (Otter): random friend(s) +1/+1
+        if (member.defId === 'junxuguan') {
+          const others = newTeam.filter((t) => t !== member);
+          const picks = randomPick(others, member.level);
+          for (const t of picks) {
+            t.atk = Math.min(MAX_STAT, t.atk + 1);
+            t.hp = Math.min(MAX_STAT, t.hp + 1);
+            t.maxHp = Math.min(MAX_STAT, t.maxHp + 1);
+          }
+          if (picks.length > 0) events.push(`军需官: 补给分配 ${picks.length}个友方 +1/+1`);
+        }
+        // 徐庶 (Snail): if lost last battle, all friends +level/+level
+        if (member.defId === 'xushu' && state.lastBattleLost) {
+          for (const t of newTeam) {
+            if (t !== member) {
+              t.atk = Math.min(MAX_STAT, t.atk + 1 * member.level);
+              t.hp = Math.min(MAX_STAT, t.hp + 1 * member.level);
+              t.maxHp = Math.min(MAX_STAT, t.maxHp + 1 * member.level);
+            }
+          }
+          events.push(`徐庶: 雪中送炭 所有友方 +${member.level}/${member.level}`);
+        }
+      }
     }
 
     const newPetSlots = [...state.petSlots];
@@ -528,25 +548,11 @@ export const useShopStore = create<ShopState>((set, get) => ({
           if (t.level === 1 && t.xp >= XP_TO_LV2) {
             t.level = 2;
             events.push(`${getGeneralName(t.defId)} 升级到 Lv.2！`);
-            // Level-up reward: add 2 bonus slots from next tier to shop
-            const tDef = generals.find((d) => d.id === t.defId);
-            if (tDef) {
-              offerLevelUpReward(tDef.tier, state, events, set);
-            }
-            // 教头 levelUp trigger
-            if (t.defId === 'jiaotou') {
-              for (const m of newTeam) {
-                if (m !== t) {
-                  m.atk = Math.min(MAX_STAT, m.atk + t.level);
-                  m.hp = Math.min(MAX_STAT, m.hp + t.level);
-                  m.maxHp = Math.min(MAX_STAT, m.maxHp + t.level);
-                }
-              }
-              events.push(`教头: 练兵 所有友方 +${t.level}/${t.level}`);
-            }
+            applyLevelUpEffects(t, newTeam, events, state, set, true);
           } else if (t.level === 2 && t.xp >= XP_TO_LV3) {
             t.level = 3;
             events.push(`${getGeneralName(t.defId)} 升级到 Lv.3！`);
+            applyLevelUpEffects(t, newTeam, events, state, set, false);
           }
           events.push(`${getGeneralName(t.defId)} 获得经验`);
           break;
@@ -680,6 +686,9 @@ export const useShopStore = create<ShopState>((set, get) => ({
     const newTeam = [...team];
     const target = newTeam[teamIdx];
 
+    // Clear current reward FIRST, so a chained level-up can offer a fresh one
+    set({ levelUpReward: null });
+
     if (target && target.defId === reward.id) {
       // Merge with existing
       target.atk = Math.min(MAX_STAT, Math.max(target.atk, reward.baseAtk) + 1);
@@ -689,6 +698,11 @@ export const useShopStore = create<ShopState>((set, get) => ({
       if (target.level === 1 && target.xp >= XP_TO_LV2) {
         target.level = 2;
         events.push(`${reward.name} 升级到 Lv.2！`);
+        applyLevelUpEffects(target, newTeam, events, get(), set, true);
+      } else if (target.level === 2 && target.xp >= XP_TO_LV3) {
+        target.level = 3;
+        events.push(`${reward.name} 升级到 Lv.3！`);
+        applyLevelUpEffects(target, newTeam, events, get(), set, false);
       }
       events.push(`升级奖励：合并 ${reward.name}`);
     } else if (!target && newTeam.length < MAX_TEAM_SIZE) {
@@ -705,12 +719,40 @@ export const useShopStore = create<ShopState>((set, get) => ({
       return null; // Team full
     }
 
-    // Clear reward (both slots removed after picking one)
-    set({ levelUpReward: null });
     return { team: newTeam, events };
   },
 
   clearLevelUpReward: () => set({ levelUpReward: null }),
+
+  mergeTeamPets: (team, fromIdx, toIdx) => {
+    const events: string[] = [];
+    const source = team[fromIdx];
+    const target = team[toIdx];
+    if (!source || !target || source.defId !== target.defId || fromIdx === toIdx) {
+      return { team, events };
+    }
+
+    const newTeam = [...team];
+    const t = { ...target };
+    t.atk = Math.min(MAX_STAT, Math.max(t.atk, source.atk) + 1);
+    t.hp = Math.min(MAX_STAT, Math.max(t.hp, source.hp) + 1);
+    t.maxHp = Math.min(MAX_STAT, Math.max(t.maxHp, source.maxHp) + 1);
+    t.xp += 1;
+    newTeam[toIdx] = t;
+    newTeam.splice(fromIdx, 1);
+
+    if (t.level === 1 && t.xp >= XP_TO_LV2) {
+      t.level = 2;
+      events.push(`${getGeneralName(t.defId)} 升级到 Lv.2！`);
+      applyLevelUpEffects(t, newTeam, events, get(), set, true);
+    } else if (t.level === 2 && t.xp >= XP_TO_LV3) {
+      t.level = 3;
+      events.push(`${getGeneralName(t.defId)} 升级到 Lv.3！`);
+      applyLevelUpEffects(t, newTeam, events, get(), set, false);
+    }
+
+    return { team: newTeam, events };
+  },
 
   executeEndOfTurn: (team, tier) => {
     const events: string[] = [];

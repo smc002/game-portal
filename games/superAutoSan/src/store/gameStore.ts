@@ -38,7 +38,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   startGame: () =>
     set({
-      phase: 'shop',
+      phase: 'tutorial',
       wave: 0,
       turn: 1,
       lives: STARTING_LIVES,

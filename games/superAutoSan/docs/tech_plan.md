@@ -76,9 +76,11 @@ games/superAutoSan/
 │   │   ├── BattleEngine.ts              # 自动战斗：输入双方队伍，输出事件序列
 │   │   ├── (触发器内联在BattleEngine和ShopStore中)
 │   │   ├── ShopEngine.ts                # 商店：刷新池/购买/出售/合并/冻结
-│   │   ├── EnemyGenerator.ts            # 敌方生成：优先使用模拟数据，降级到随机
+│   │   ├── EnemyGenerator.ts            # 敌方生成：优先竞技场→模拟数据→随机
+│   │   ├── ArenaStore.ts               # PVE竞技场：localStorage存储玩家胜利阵容（每波20套）；首次启动时从 seedArena 初始化
+│   │   ├── seedArena.ts                # 阵容种子（自动生成，由 scripts/playGames.ts 产生）
 │   │   ├── SimulateGame.ts              # 模拟对局：自动买牌生成各轮次快照作为敌方池
-│   │   └── helpers.ts                   # 工具：实例创建/属性钳制/随机选取
+│   │   └── helpers.ts                   # 工具：实例创建/属性钳制/随机选取/getLeveledAbilityDesc
 │   │
 │   ├── store/                         # Zustand 状态管理
 │   │   ├── gameStore.ts                 # 全局：phase/wave/lives/score/team
@@ -87,27 +89,34 @@ games/superAutoSan/
 │   │
 │   ├── pages/                         # 页面组件（每个对应一个 GamePhase）
 │   │   ├── TitleScreen.tsx              # 标题画面
-│   │   ├── ShopScreen.tsx               # 商店准备（核心交互页）
-│   │   ├── BattleScreen.tsx             # 战斗回放（自动演出）
+│   │   ├── TutorialScreen.tsx           # 新手教学（金币/生命脉冲高亮 + 锁定示范）
+│   │   ├── ShopScreen.tsx               # 商店（整区售卖 / 同名升级提示 / mergeMode 计算）
+│   │   ├── BattleScreen.tsx             # 战斗回放（结算覆盖层 / 通关庆祝 / 竞技场标签）
 │   │   └── GameOverScreen.tsx           # Game Over 结算
 │   │
 │   ├── components/                    # 通用组件
-│   │   ├── GeneralCard.tsx              # 武将卡片（色块+文字+ATK/HP+星级+锦囊+悬停提示）
-│   │   ├── ItemCard.tsx                 # 道具卡片（带悬停效果描述）
-│   │   ├── TeamSlots.tsx                # 5槽位队伍区域（拖拽排序+合并+XP进度条+悬停提示）
-│   │   ├── Tooltip.tsx                  # 通用悬停提示组件
+│   │   ├── GeneralCard.tsx              # 商店武将卡（折后价 / 同名升级提示徽章 / 圆形冻结按钮）
+│   │   ├── ItemCard.tsx                 # 商店道具卡（折后价显示 / 圆形冻结按钮）
+│   │   ├── TeamSlots.tsx                # 5槽位队伍区域（拖拽排序+合并+XP进度条+属性飘字）
+│   │   ├── Tooltip.tsx                  # 通用提示组件（hover + 长按 + 自动方向翻转）
 │   │   ├── StatsBar.tsx                 # 顶栏：金币/回合/生命/分数
-│   │   └── BattleUnit.tsx               # 战斗中的武将单位（带动画状态）
+│   │   └── BattleUnit.tsx               # 战斗中的武将单位（动画状态 + 属性飘字）
 │   │
 │   ├── animations/                    # 战斗动画
 │   │   ├── battleAnimator.ts            # 事件序列 → CSS class 映射
-│   │   └── effects.css                  # 撞飞/爆炸/受伤/加buff 关键帧动画
+│   │   └── effects.css                  # 关键帧：attack/hurt/faint/screen-shake/summon/buff-glow
+│   │                                    #         + stat-float-up（属性飘字）
+│   │                                    #         + tutorial-pulse（教学高亮）
+│   │                                    #         + merge-glow（同名升级提示）
+│   │                                    #         + fadeIn（结算覆盖层）
 │   │
 │   └── styles/                        # 样式
 │       ├── variables.css                 # CSS变量（Tier配色、像素字体、间距）
 │       ├── global.css                    # 全局样式（reset、像素风基础、按钮）
 │       └── shop.css                      # 商店页专用（拖拽高亮、槽位布局）
 │
+├── scripts/                          # 开发工具脚本
+│   └── playGames.ts                    # 模拟 5 局游戏，生成 src/engine/seedArena.ts
 ├── public/                            # 静态资源（像素字体等）
 ├── dist/                              # 构建产物
 ├── index.html                         # HTML入口
@@ -125,6 +134,7 @@ games/superAutoSan/
 ```typescript
 type GamePhase =
   | 'title'     // → TitleScreen
+  | 'tutorial'  // → TutorialScreen
   | 'shop'      // → ShopScreen
   | 'battle'    // → BattleScreen
   | 'gameOver'; // → GameOverScreen
@@ -314,15 +324,56 @@ function useItem(item: ItemDef, target: GeneralInstance): GeneralInstance;
 ```typescript
 // 根据当前关卡生成敌方队伍
 function generateEnemy(wave: number): GeneralInstance[];
+
+// 暴露最近一次生成的元信息（供 BattleScreen 显示来源标签 / 写回竞技场）
+function getLastArenaIdx(): number | undefined;
+function getLastArenaSavedAt(): number | undefined;
 ```
 
-从 `enemyWaves.ts` 读取配置，按以下流程生成：
-1. 根据 wave 确定配置区间（第 1-2 关、第 3-4 关 ...）
-2. 随机武将数量（在区间范围内）
-3. 从对应 Tier 池随机抽取武将
-4. 按概率分配等级（Lv1/Lv2/Lv3）
-5. 按概率分配锦囊
-6. wave > 15 时应用全体属性加成：`ATK += wave - 15, HP += wave - 15`
+生成优先级（依次尝试）：
+1. **PVE 竞技场**：从 `ArenaStore.getArenaTeam(wave)` 抽取真实玩家阵容；记录 `arenaIdx` 和 `savedAt`
+2. **模拟对局**：从 `SimulateGame.getSimulatedEnemy(wave)` 取预模拟的快照
+3. **随机生成**：根据 `enemyWaves.ts` 配置随机抽取（最终回退）
+
+每条路径的结果都会调用 `applyEndlessBonus(team, wave)` 统一施加无尽模式加成。
+
+```typescript
+// wave 16+ 二次曲线加成，wave 20 接近 MAX_STAT 上限
+function endlessBonus(wave: number): number {
+  const d = Math.max(0, wave - 15);
+  return d > 0 ? d * 5 + d * d : 0;
+}
+```
+
+| wave | bonus |
+|------|-------|
+| 16 | +6 |
+| 17 | +14 |
+| 18 | +24 |
+| 19 | +36 |
+| 20 | +50 |
+
+### ArenaStore.ts — PVE 竞技场
+
+```typescript
+interface ArenaEntry {
+  team: GeneralInstance[];
+  savedAt: number;  // Date.now() 写入时间
+}
+
+// localStorage 存储格式: Record<wave, ArenaEntry[]>
+// 每个 wave 最多 20 套阵容
+function getArenaTeam(wave): { team, arenaIdx, savedAt } | null;
+function saveArenaTeam(wave, team, defeatedIdx?): void;
+```
+
+- localStorage key: `superAutoSan_arena`
+- 向后兼容：旧格式（裸 `GeneralInstance[][]`）会自动包装为 `savedAt: 0`
+- 取出时重新分配 `instanceId`，**保留** tempAtk/tempHp（临时增益是阵容真实强度的一部分），恢复 `hp = maxHp`
+- 保存时也保留 tempAtk/tempHp，仅重置 hp = maxHp
+- 满 20 套时，若有 `defeatedIdx` 则替换该位置（胜者替败者），否则随机替换
+- BattleScreen 在敌方区域上方显示蓝色小标签：`⚔ 玩家阵容 · 5分钟前 / 2小时前 / 3天前 / yyyy-MM-dd`
+- **首次启动种子**：localStorage 为空时，从 `seedArena.ts` 加载 `SEED_ARENA` 写入并标记 `superAutoSan_arena_seeded`，后续不会重复种子。详见"十一·五、阵容种子生成工具"
 
 ---
 
@@ -495,6 +546,56 @@ npm run dev -w superautosan
 
 ---
 
+## 十一·五、阵容种子生成工具（playGames）
+
+### 用途
+为 PVE 竞技场 (`ArenaStore`) 生成初始阵容种子，让首次启动游戏的玩家就能遇到"模拟玩家"留下的真实风格阵容，而不是从空池子开始。
+
+### 文件
+- `scripts/playGames.ts` — Node 模拟器（依赖 tsx 直接执行 TS）
+- `src/engine/seedArena.ts` — **自动生成**的种子数据文件，包含 `SEED_ARENA: Record<wave, SeededArenaEntry[]>`
+- `src/engine/ArenaStore.ts` — 首次启动时检测 localStorage 为空，自动用 `SEED_ARENA` 初始化并写入；用 `superAutoSan_arena_seeded` 标志位避免重复种子
+
+### 工作原理
+1. 模拟器内置一个 AI 玩家：每回合刷新商店、合并同名武将、买装备/食物（含 `酒` 临时增益）
+2. 每回合战斗使用真实的 `executeBattle` + `generateEnemy` 引擎，结果与游戏一致
+3. **每次胜利**都把 *战前* 阵容快照（保留全部 tempAtk/tempHp）按 wave 索引保存
+4. 跑完 5 局后，把所有快照按关卡分组写入 `seedArena.ts`，每条带 `savedAt` 时间戳和注释
+
+### 用法
+```bash
+cd games/superAutoSan
+npx tsx scripts/playGames.ts
+```
+
+输出示例：
+```
+正在模拟 5 局游戏，每局最多 15 回合...
+第 1 局：通关 5/15 关，最终阵容力量 128
+  最终阵容: 商贾(L2 11/8+铁骨), 刺客(L2 9/9+铁骨), ...
+...
+已写入 src/engine/seedArena.ts
+关卡 1: 1 套阵容
+关卡 2: 1 套阵容
+...
+总共 31 套阵容写入种子
+```
+
+### AI 策略概览
+- **购买**：每回合最多 5 次刷新；优先合并同名武将，否则按 Tier 高→低买入新武将
+- **道具**：锦囊装备给最厚血肉盾；属性食物加给最强单位；`酒` 给最强单位 +3/+3 临时
+- **出售**：4 阶后若队伍已满且持有低 Tier Lv1 武将，出售腾位
+- **战斗**：使用真实战斗引擎，胜利计入通关数，失败扣命，归零退出
+
+### 重新生成时机
+- 数据层有重大调整（武将数值、道具效果、波次配置）后
+- 想刷新种子池子让玩家遇到不同风格阵容时
+- 调整 AI 策略后
+
+种子文件直接 commit 到 git，玩家加载时无需额外网络请求。
+
+---
+
 ## 十二、开发阶段计划
 
 | 阶段 | 内容 | 预估文件数 | 状态 |
@@ -510,3 +611,5 @@ npm run dev -w superautosan
 | Phase 8 | 全触发器实装：战斗触发45个 + 商店触发21个 + 姜维 | ~2 | ✅ |
 | Phase 9 | 难度系统（SimulateGame模拟对局）+ 攻击动画方向 + 升级奖励 + 郭嘉被动 | ~3 | ✅ |
 | Phase 10 | Portal 接入 + 部署 | ~3 | 待开发 |
+| Phase 11 | PVE竞技场（localStorage 玩家阵容池、时间戳、来源标识） | ~2 | ✅ |
+| Phase 12 | 体验优化：飘字动画 / 长按 Tooltip / 整区售卖 / 结算覆盖层 / 同名升级提示 / 折后价 / 通关庆祝 / 无尽模式 | ~10 | ✅ |

@@ -3,11 +3,54 @@ import { generals } from '../data/generals';
 import { waveConfigs } from '../data/enemyWaves';
 import { createInstance, randomInt, randomPick } from './helpers';
 import { getSimulatedEnemy } from './SimulateGame';
+import { getArenaTeam } from './ArenaStore';
+
+/** Tracks arena info of the last generated enemy (if from arena) */
+let lastArenaIdx: number | undefined;
+let lastArenaSavedAt: number | undefined;
+
+export function getLastArenaIdx(): number | undefined {
+  return lastArenaIdx;
+}
+
+export function getLastArenaSavedAt(): number | undefined {
+  return lastArenaSavedAt;
+}
+
+// Endless mode (wave 16+): aggressive scaling so wave 20 is brutal
+// wave 16: +6, 17: +14, 18: +24, 19: +36, 20: +50
+function endlessBonus(wave: number): number {
+  const d = Math.max(0, wave - 15);
+  return d > 0 ? d * 5 + d * d : 0;
+}
+
+function applyEndlessBonus(team: GeneralInstance[], wave: number): void {
+  const bonus = endlessBonus(wave);
+  if (bonus <= 0) return;
+  for (const t of team) {
+    t.atk += bonus;
+    t.hp += bonus;
+    t.maxHp += bonus;
+  }
+}
 
 export function generateEnemy(wave: number): GeneralInstance[] {
-  // Try simulated enemy first (more realistic difficulty)
+  lastArenaIdx = undefined;
+  lastArenaSavedAt = undefined;
+
+  // Try PVE arena first (real player teams)
+  const arena = getArenaTeam(wave);
+  if (arena && arena.team.length > 0) {
+    lastArenaIdx = arena.arenaIdx;
+    lastArenaSavedAt = arena.savedAt;
+    applyEndlessBonus(arena.team, wave);
+    return arena.team;
+  }
+
+  // Try simulated enemy (more realistic difficulty)
   const simulated = getSimulatedEnemy(wave);
   if (simulated && simulated.length > 0) {
+    applyEndlessBonus(simulated, wave);
     return simulated;
   }
 
@@ -46,7 +89,7 @@ export function generateEnemy(wave: number): GeneralInstance[] {
       inst.perk = randomPick(config.availablePerks) ?? null;
     }
 
-    const bonus = Math.max(0, wave - 15);
+    const bonus = endlessBonus(wave);
     if (bonus > 0) {
       inst.atk += bonus;
       inst.hp += bonus;

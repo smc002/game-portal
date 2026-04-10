@@ -1,5 +1,5 @@
 // ========== Game Phase ==========
-export type GamePhase = 'title' | 'shop' | 'battle' | 'gameOver';
+export type GamePhase = 'title' | 'tutorial' | 'shop' | 'battle' | 'gameOver';
 
 // ========== Trigger Types ==========
 export type TriggerType =

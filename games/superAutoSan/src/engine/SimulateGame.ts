@@ -199,15 +199,6 @@ export function getSimulatedEnemy(wave: number): GeneralInstance[] | null {
     t.tempHp = 0;
   }
 
-  // Apply wave 16+ bonus
-  const bonus = Math.max(0, wave - 15);
-  if (bonus > 0) {
-    for (const t of team) {
-      t.atk += bonus;
-      t.hp += bonus;
-      t.maxHp += bonus;
-    }
-  }
-
+  // Endless bonus is applied centrally in EnemyGenerator
   return team;
 }

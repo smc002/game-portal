@@ -1,5 +1,6 @@
 import type { ItemDef } from '../data/types';
 import { TIER_COLORS } from '../data/types';
+import { useShopStore } from '../store/shopStore';
 import { Tooltip } from './Tooltip';
 
 interface Props {
@@ -12,6 +13,9 @@ interface Props {
 
 export function ItemCard({ def, frozen, selected, onClick, onFreeze }: Props) {
   const tierColor = TIER_COLORS[def.tier] ?? '#888';
+  const itemDiscount = useShopStore((s) => s.itemDiscount);
+  const effectiveCost = Math.max(0, def.cost - itemDiscount);
+  const discounted = effectiveCost < def.cost;
 
   const tooltipContent = (
     <div>
@@ -51,11 +55,19 @@ export function ItemCard({ def, frozen, selected, onClick, onFreeze }: Props) {
             onClick={(e) => { e.stopPropagation(); onFreeze(); }}
             style={{
               position: 'absolute',
-              top: 1,
-              right: 2,
-              fontSize: 10,
+              top: -2,
+              right: -2,
+              width: 20,
+              height: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
               cursor: 'pointer',
-              color: frozen ? '#00bfff' : 'var(--text-secondary)',
+              color: frozen ? '#00bfff' : '#888',
+              background: frozen ? 'rgba(0,191,255,0.15)' : 'rgba(255,255,255,0.08)',
+              borderRadius: '50%',
+              border: `1px solid ${frozen ? '#00bfff' : '#555'}`,
             }}
           >
             {frozen ? '❄' : '○'}
@@ -84,8 +96,13 @@ export function ItemCard({ def, frozen, selected, onClick, onFreeze }: Props) {
         </div>
 
         {/* Cost */}
-        <div style={{ fontSize: 11, color: 'var(--gold-color)' }}>
-          {def.cost} 金
+        <div style={{ fontSize: 11, color: discounted ? '#44ff44' : 'var(--gold-color)' }}>
+          {discounted && (
+            <span style={{ color: '#888', textDecoration: 'line-through', marginRight: 4 }}>
+              {def.cost}
+            </span>
+          )}
+          {effectiveCost} 金
         </div>
       </div>
     </Tooltip>

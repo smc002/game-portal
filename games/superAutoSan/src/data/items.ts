@@ -3,7 +3,7 @@ import type { ItemDef } from './types';
 export const items: ItemDef[] = [
   // Tier 1
   { id: 'mantou', name: '馒头', originalName: 'Apple', tier: 1, cost: 3, type: 'stat', description: '+1/+1（永久）' },
-  { id: 'jinnang', name: '锦囊', originalName: 'Honey', tier: 1, cost: 3, type: 'perk', description: '阵亡时召唤1/1信兵' },
+  { id: 'jinnang', name: '传令符', originalName: 'Honey', tier: 1, cost: 3, type: 'perk', description: '阵亡时召唤1/1信兵' },
 
   // Tier 2
   { id: 'jiu', name: '酒', originalName: 'Cupcake', tier: 2, cost: 3, type: 'stat', description: '+3/+3（临时）' },

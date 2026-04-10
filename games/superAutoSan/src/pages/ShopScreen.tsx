@@ -5,8 +5,16 @@ import { GeneralCard } from '../components/GeneralCard';
 import { ItemCard } from '../components/ItemCard';
 import { TeamSlots } from '../components/TeamSlots';
 import { StatsBar } from '../components/StatsBar';
-import { generals } from '../data/generals';
-import { items as allItems } from '../data/items';
+import { XP_TO_LV2, XP_TO_LV3 } from '../data/types';
+import type { GeneralInstance } from '../data/types';
+
+function computeMergeMode(team: GeneralInstance[], defId: string): 'levelup' | 'merge' | null {
+  const member = team.find((t) => t.defId === defId && t.level < 3);
+  if (!member) return null;
+  if (member.level === 1 && member.xp + 1 >= XP_TO_LV2) return 'levelup';
+  if (member.level === 2 && member.xp + 1 >= XP_TO_LV3) return 'levelup';
+  return 'merge';
+}
 
 export function ShopScreen() {
   const { team, updateTeam, tierUnlocked, setPhase } = useGameStore();
@@ -86,22 +94,10 @@ export function ShopScreen() {
   }, [team, updateTeam]);
 
   const handleMerge = useCallback((fromIdx: number, toIdx: number) => {
-    const source = team[fromIdx];
-    const target = team[toIdx];
-    if (!source || !target || source.defId !== target.defId || fromIdx === toIdx) return;
-
-    const newTeam = [...team];
-    const t = { ...target };
-    t.atk = Math.min(50, Math.max(t.atk, source.atk) + 1);
-    t.hp = Math.min(50, Math.max(t.hp, source.hp) + 1);
-    t.maxHp = Math.min(50, Math.max(t.maxHp, source.maxHp) + 1);
-    t.xp += 1;
-    if (t.level === 1 && t.xp >= 2) { t.level = 2; showMessage(`${getGeneralName(t.defId)} 升级到 Lv.2！`); }
-    else if (t.level === 2 && t.xp >= 5) { t.level = 3; showMessage(`${getGeneralName(t.defId)} 升级到 Lv.3！`); }
-    newTeam[toIdx] = t;
-    newTeam.splice(fromIdx, 1);
-    updateTeam(newTeam);
-  }, [team, updateTeam, showMessage]);
+    const result = shop.mergeTeamPets(team, fromIdx, toIdx);
+    updateTeam(result.team);
+    result.events.forEach((e) => showMessage(e));
+  }, [shop, team, updateTeam, showMessage]);
 
   const handleFight = useCallback(() => {
     // Execute end-of-turn triggers before battle
@@ -119,7 +115,8 @@ export function ShopScreen() {
   const handleItemClick = useCallback((slotIdx: number) => {
     const item = shop.itemSlots[slotIdx];
     if (!item) return;
-    if (shop.gold < item.cost) { showMessage('金币不足！'); return; }
+    const effectiveCost = Math.max(0, item.cost - shop.itemDiscount);
+    if (shop.gold < effectiveCost) { showMessage('金币不足！'); return; }
 
     // Special items that don't need a target (bingshu = canned food)
     if (item.type === 'special' && item.id === 'bingshu') {
@@ -145,136 +142,184 @@ export function ShopScreen() {
 
   const pendingItemDef = pendingItem !== null ? shop.itemSlots[pendingItem] : null;
 
+  const [sellDragOver, setSellDragOver] = useState(false);
+
+  const sellZoneHandlers = {
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setSellDragOver(true); },
+    onDragLeave: () => setSellDragOver(false),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      const idx = e.dataTransfer.getData('text/plain');
+      if (idx !== '') handleSell(Number(idx));
+      setSellDragOver(false);
+    },
+  };
+
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 12, gap: 12 }}
       onClick={() => { if (pendingItem !== null) setPendingItem(null); }}
     >
-      <StatsBar />
+      {/* Entire upper area is the sell drop zone */}
+      <div
+        {...sellZoneHandlers}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          flex: 1,
+          borderRadius: 'var(--border-radius)',
+          border: sellDragOver ? '2px dashed #ff4444' : '2px dashed transparent',
+          background: sellDragOver ? 'rgba(255,68,68,0.06)' : 'transparent',
+          transition: 'border-color 0.15s, background 0.15s',
+          padding: sellDragOver ? 4 : 4,
+          position: 'relative',
+        }}
+      >
+        {/* Sell hint overlay */}
+        {sellDragOver && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ff4444',
+            fontSize: 20,
+            fontWeight: 'bold',
+            pointerEvents: 'none',
+            zIndex: 50,
+            background: 'rgba(0,0,0,0.3)',
+            borderRadius: 'var(--border-radius)',
+          }}>
+            松开出售
+          </div>
+        )}
 
-      {/* Message */}
-      {message && (
-        <div style={{
-          textAlign: 'center',
-          color: pendingItem !== null ? '#00e5ff' : 'var(--text-gold)',
-          fontSize: 14,
-          minHeight: 20,
-        }}>
-          {message}
+        <StatsBar />
+
+        {/* Message */}
+        {message && (
+          <div style={{
+            textAlign: 'center',
+            color: pendingItem !== null ? '#00e5ff' : 'var(--text-gold)',
+            fontSize: 14,
+            minHeight: 20,
+          }}>
+            {message}
+          </div>
+        )}
+
+        {/* Shop - Pets */}
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
+          商店 - 武将 (Tier {tierUnlocked})
         </div>
-      )}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {shop.petSlots.map((def, i) => (
+            <div key={i} style={{ position: 'relative' }}>
+              {def ? (
+                <GeneralCard
+                  def={def}
+                  frozen={shop.frozenPets.has(i)}
+                  mergeMode={computeMergeMode(team, def.id)}
+                  onClick={(e) => {
+                    e?.stopPropagation();
+                    setPendingItem(null);
+                    const mergeIdx = team.findIndex((t) => t.defId === def.id);
+                    if (mergeIdx >= 0) {
+                      handleBuyPet(i, mergeIdx);
+                    } else if (team.length < 5) {
+                      handleBuyPet(i, team.length);
+                    } else {
+                      showMessage('队伍已满！');
+                    }
+                  }}
+                  onFreeze={() => shop.toggleFreezePet(i)}
+                />
+              ) : (
+                <div style={{
+                  width: 'var(--card-width)',
+                  height: 'var(--card-height)',
+                  border: '2px dashed var(--slot-border)',
+                  borderRadius: 'var(--border-radius)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12,
+                }}>
+                  已售
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
-      {/* Shop - Pets */}
-      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
-        商店 - 武将 (Tier {tierUnlocked})
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-        {shop.petSlots.map((def, i) => (
-          <div key={i} style={{ position: 'relative' }}>
-            {def ? (
-              <GeneralCard
-                def={def}
-                frozen={shop.frozenPets.has(i)}
-                onClick={(e) => {
-                  e?.stopPropagation();
-                  setPendingItem(null);
-                  const mergeIdx = team.findIndex((t) => t.defId === def.id);
-                  if (mergeIdx >= 0) {
-                    handleBuyPet(i, mergeIdx);
-                  } else if (team.length < 5) {
-                    handleBuyPet(i, team.length);
-                  } else {
-                    showMessage('队伍已满！');
-                  }
-                }}
-                onFreeze={() => shop.toggleFreezePet(i)}
-              />
-            ) : (
-              <div style={{
-                width: 'var(--card-width)',
-                height: 'var(--card-height)',
-                border: '2px dashed var(--slot-border)',
-                borderRadius: 'var(--border-radius)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)',
-                fontSize: 12,
-              }}>
-                已售
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+        {/* Shop - Items */}
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
+          商店 - 道具
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+          {shop.itemSlots.map((item, i) => (
+            <div key={i}>
+              {item ? (
+                <ItemCard
+                  def={item}
+                  frozen={shop.frozenItems.has(i)}
+                  selected={pendingItem === i}
+                  onClick={(e) => {
+                    e?.stopPropagation();
+                    handleItemClick(i);
+                  }}
+                  onFreeze={() => shop.toggleFreezeItem(i)}
+                />
+              ) : (
+                <div style={{
+                  width: 'var(--card-width)',
+                  height: 'var(--card-height)',
+                  border: '2px dashed var(--slot-border)',
+                  borderRadius: 'var(--border-radius)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12,
+                }}>
+                  已售
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
-      {/* Shop - Items */}
-      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
-        商店 - 道具
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-        {shop.itemSlots.map((item, i) => (
-          <div key={i}>
-            {item ? (
-              <ItemCard
-                def={item}
-                frozen={shop.frozenItems.has(i)}
-                selected={pendingItem === i}
-                onClick={(e) => {
-                  e?.stopPropagation();
-                  handleItemClick(i);
-                }}
-                onFreeze={() => shop.toggleFreezeItem(i)}
-              />
-            ) : (
-              <div style={{
-                width: 'var(--card-width)',
-                height: 'var(--card-height)',
-                border: '2px dashed var(--slot-border)',
-                borderRadius: 'var(--border-radius)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-secondary)',
-                fontSize: 12,
-              }}>
-                已售
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+        {/* Level-up reward picks */}
+        {shop.levelUpReward && shop.levelUpReward.length > 0 && (
+          <>
+            <div style={{ textAlign: 'center', color: '#00e5ff', fontSize: 12, fontWeight: 'bold' }}>
+              升级奖励 — 选择一位武将（免费）
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+              {shop.levelUpReward.map((def, i) => (
+                <GeneralCard
+                  key={`reward-${i}`}
+                  def={def}
+                  onClick={(e) => {
+                    e?.stopPropagation();
+                    handleBuyReward(i);
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
-      {/* Level-up reward picks */}
-      {shop.levelUpReward && shop.levelUpReward.length > 0 && (
-        <>
-          <div style={{ textAlign: 'center', color: '#00e5ff', fontSize: 12, fontWeight: 'bold' }}>
-            🎉 升级奖励 — 选择一位武将（免费）
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-            {shop.levelUpReward.map((def, i) => (
-              <GeneralCard
-                key={`reward-${i}`}
-                def={def}
-                onClick={(e) => {
-                  e?.stopPropagation();
-                  handleBuyReward(i);
-                }}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Roll button */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-        <button onClick={(e) => { e.stopPropagation(); handleRoll(); }}>
-          {shop.freeRoll ? '刷新 (免费)' : `刷新 (${1} 金)`}
-        </button>
+        {/* Roll button */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+          <button onClick={(e) => { e.stopPropagation(); handleRoll(); }}>
+            {shop.freeRoll ? '刷新 (免费)' : `刷新 (${1} 金)`}
+          </button>
+        </div>
       </div>
-
-      {/* Sell drop zone - between shop and team */}
-      <SellZone onSell={handleSell} />
 
       {/* Team */}
       <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12 }}>
@@ -297,45 +342,10 @@ export function ShopScreen() {
           style={{ fontSize: 18, padding: '10px 40px' }}
           onClick={handleFight}
         >
-          出战！ ⚔️
+          出战！
         </button>
       </div>
     </div>
   );
 }
 
-function SellZone({ onSell }: { onSell: (idx: number) => void }) {
-  const [dragOver, setDragOver] = useState(false);
-
-  return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        const idx = e.dataTransfer.getData('text/plain');
-        if (idx !== '') {
-          onSell(Number(idx));
-        }
-        setDragOver(false);
-      }}
-      style={{
-        textAlign: 'center',
-        padding: '8px 0',
-        border: `2px dashed ${dragOver ? '#ff4444' : 'transparent'}`,
-        borderRadius: 'var(--border-radius)',
-        color: dragOver ? '#ff4444' : 'var(--text-secondary)',
-        fontSize: 12,
-        transition: 'all 0.15s',
-        background: dragOver ? 'rgba(255,68,68,0.1)' : 'transparent',
-        minHeight: 32,
-      }}
-    >
-      {dragOver ? '松开出售' : ''}
-    </div>
-  );
-}
-
-function getGeneralName(defId: string): string {
-  return generals.find((g) => g.id === defId)?.name ?? defId;
-}

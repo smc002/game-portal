@@ -54,6 +54,10 @@ export function executeBattle(
     events.push({ type: 'attack', attackerSide: 'player', attackerIdx: pIdx, defenderSide: 'enemy', defenderIdx: eIdx, damage: pDamage });
     events.push({ type: 'attack', attackerSide: 'enemy', attackerIdx: eIdx, defenderSide: 'player', defenderIdx: pIdx, damage: eDamage });
 
+    // Friend-ahead-attacks triggers (周仓/陆逊): fire on the pet directly behind the attacker
+    fireFriendAheadAttacks(playerTeam, pIdx, enemyTeam, events, 'player');
+    fireFriendAheadAttacks(enemyTeam, eIdx, playerTeam, events, 'enemy');
+
     // Apply damage with perk defense
     applyDamage(eFront, pDamage, events, 'enemy', eIdx);
     applyDamage(pFront, eDamage, events, 'player', pIdx);
@@ -153,6 +157,27 @@ export function executeBattle(
 
 function getAlive(team: GeneralInstance[]): GeneralInstance[] {
   return team.filter((g) => g.hp > 0);
+}
+
+/**
+ * Fire `friendAheadAttacks` triggers on every alive friend behind the attacker.
+ * (周仓 / 陆逊 / 姜维 — they react when a friend in front of them attacks.)
+ */
+function fireFriendAheadAttacks(
+  team: GeneralInstance[],
+  attackerIdx: number,
+  enemyTeam: GeneralInstance[],
+  events: BattleEvent[],
+  side: Side
+) {
+  for (let i = attackerIdx + 1; i < team.length; i++) {
+    const behind = team[i];
+    if (!behind || behind.hp <= 0) continue;
+    const def = getDef(behind.defId);
+    if (def?.trigger === 'friendAheadAttacks') {
+      executeTrigger(behind, 'friendAheadAttacks', team, enemyTeam, events, side, i);
+    }
+  }
 }
 
 function emitSnapshot(events: BattleEvent[], playerTeam: GeneralInstance[], enemyTeam: GeneralInstance[]) {
@@ -668,7 +693,7 @@ function executeFaintTriggers(
 
 function summonUnit(
   team: GeneralInstance[],
-  enemyTeam: GeneralInstance[],
+  _enemyTeam: GeneralInstance[],
   events: BattleEvent[],
   side: Side,
   _position: number,

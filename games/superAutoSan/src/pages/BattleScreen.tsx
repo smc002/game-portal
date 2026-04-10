@@ -5,7 +5,8 @@ import { useShopStore } from '../store/shopStore';
 import { BattleUnit } from '../components/BattleUnit';
 import { StatsBar } from '../components/StatsBar';
 import { executeBattle } from '../engine/BattleEngine';
-import { generateEnemy } from '../engine/EnemyGenerator';
+import { generateEnemy, getLastArenaIdx, getLastArenaSavedAt } from '../engine/EnemyGenerator';
+import { saveArenaTeam } from '../engine/ArenaStore';
 import type { BattleEvent, GeneralInstance } from '../data/types';
 import '../animations/effects.css';
 
@@ -16,9 +17,12 @@ export function BattleScreen() {
   const [enemyDisplay, setEnemyDisplay] = useState<GeneralInstance[]>([]);
   const [animClass, setAnimClass] = useState<Record<string, string>>({});
   const [battleLog, setBattleLog] = useState<string[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [started, setStarted] = useState(false);
   const prebattleTeamRef = useRef<GeneralInstance[]>([]);
+  const arenaIdxRef = useRef<number | undefined>(undefined);
+  const battleWaveRef = useRef<number>(0);
+  const [arenaSavedAt, setArenaSavedAt] = useState<number | undefined>(undefined);
 
   // Initialize battle
   useEffect(() => {
@@ -26,14 +30,13 @@ export function BattleScreen() {
     setStarted(true);
 
     const currentWave = wave + 1;
+    battleWaveRef.current = currentWave;
     const enemy = generateEnemy(currentWave);
+    arenaIdxRef.current = getLastArenaIdx();
+    setArenaSavedAt(getLastArenaSavedAt());
     // Save pre-battle team snapshot for revival after battle
     prebattleTeamRef.current = JSON.parse(JSON.stringify(team));
     const playerCopy: GeneralInstance[] = JSON.parse(JSON.stringify(team));
-    for (const p of playerCopy) {
-      p.tempAtk = 0;
-      p.tempHp = 0;
-    }
 
     const result = executeBattle(playerCopy, enemy);
     battle.startBattle(result.events, playerCopy, enemy);
@@ -47,7 +50,7 @@ export function BattleScreen() {
 
     const getDelay = () => {
       const s = useBattleStore.getState().speed;
-      return s === 1 ? 800 : s === 2 ? 400 : 200;
+      return s === 1 ? 500 : s === 2 ? 250 : 120;
     };
 
     const playNext = () => {
@@ -60,7 +63,8 @@ export function BattleScreen() {
       const event = state.events[state.currentEventIdx]!;
 
       // Skip non-visual events instantly (no delay)
-      if (event.type === 'battle_start' || event.type === 'shift_forward') {
+      const instant = ['battle_start', 'shift_forward', 'snapshot', 'knockback', 'ability_trigger', 'perk_trigger', 'summon', 'buff', 'damage_dealt'];
+      if (instant.includes(event.type)) {
         battle.nextEvent();
         processEvent(event);
         // Continue immediately to next event
@@ -155,14 +159,19 @@ export function BattleScreen() {
             (p) => p.instanceId === prePet.instanceId
           );
           if (battlePet && battlePet.hp > 0) {
-            // Survived: keep battle HP, clear temp buffs
-            return { ...battlePet, tempAtk: 0, tempHp: 0 };
+            // Survived: keep permanent stat changes from battle, restore HP to max
+            return { ...battlePet, hp: battlePet.maxHp, tempAtk: 0, tempHp: 0 };
           } else {
-            // Died: restore with pre-battle stats
-            return { ...prePet, tempAtk: 0, tempHp: 0 };
+            // Died: restore with pre-battle stats, HP to max
+            return { ...prePet, hp: prePet.maxHp, tempAtk: 0, tempHp: 0 };
           }
         });
         updateTeam(restoredTeam);
+
+        // Save winning team to PVE arena
+        if (event.result === 'win') {
+          saveArenaTeam(battleWaveRef.current, preTeam, arenaIdxRef.current);
+        }
 
         setBattleLog((prev) => [
           ...prev,
@@ -182,8 +191,95 @@ export function BattleScreen() {
     }
   }, [setPhase]);
 
+  const lives = useGameStore((s) => s.lives);
+  const isWave15Win = battle.result === 'win' && battleWaveRef.current === 15;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 12, gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 12, gap: 8, position: 'relative' }}>
+      {/* Result overlay */}
+      {battle.result && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+          zIndex: 100,
+          pointerEvents: 'none',
+          animation: 'fadeIn 0.3s ease-out',
+          padding: 20,
+        }}>
+          {isWave15Win ? (
+            <>
+              <div style={{
+                fontSize: 48,
+                fontWeight: 'bold',
+                color: '#ffd700',
+                textShadow: '0 0 24px rgba(255,215,0,0.8), 0 4px 12px rgba(0,0,0,0.9)',
+                letterSpacing: 6,
+                marginBottom: 12,
+                textAlign: 'center',
+              }}>
+                通关！恭喜
+              </div>
+              <div style={{
+                fontSize: 16,
+                color: '#fff',
+                textShadow: '0 0 8px rgba(0,0,0,0.9)',
+                marginBottom: 8,
+                textAlign: 'center',
+                maxWidth: 360,
+                lineHeight: 1.5,
+              }}>
+                你已征服 15 关，超凡的统帅！
+              </div>
+              <div style={{
+                fontSize: 14,
+                color: '#8ab4f8',
+                textShadow: '0 0 6px rgba(0,0,0,0.9)',
+                marginBottom: 16,
+                textAlign: 'center',
+                maxWidth: 360,
+                lineHeight: 1.5,
+              }}>
+                接下来进入<span style={{ color: '#ff9800', fontWeight: 'bold' }}>无尽挑战</span>，敌人将逐回合急剧变强，看你能撑到多少关！
+              </div>
+              <div style={{
+                fontSize: 16,
+                color: 'var(--hp-color)',
+                textShadow: '0 0 8px rgba(0,0,0,0.9)',
+                letterSpacing: 2,
+              }}>
+                剩余生命: {'♥'.repeat(lives)}{'♡'.repeat(Math.max(0, 5 - lives))} ({lives}/5)
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{
+                fontSize: 64,
+                fontWeight: 'bold',
+                color: battle.result === 'win' ? '#ffd700' : battle.result === 'lose' ? '#ff4444' : '#888',
+                textShadow: '0 0 20px rgba(0,0,0,0.9), 0 4px 12px rgba(0,0,0,0.8)',
+                letterSpacing: 8,
+                marginBottom: 16,
+              }}>
+                {battle.result === 'win' ? '胜利！' : battle.result === 'lose' ? '失败...' : '平局'}
+              </div>
+              <div style={{
+                fontSize: 18,
+                color: 'var(--hp-color)',
+                textShadow: '0 0 8px rgba(0,0,0,0.9)',
+                letterSpacing: 2,
+              }}>
+                剩余生命: {'♥'.repeat(lives)}{'♡'.repeat(Math.max(0, 5 - lives))} ({lives}/5)
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <StatsBar />
 
       {/* Speed controls */}
@@ -226,15 +322,31 @@ export function BattleScreen() {
         <div style={{ fontSize: 32, color: 'var(--text-gold)' }}>VS</div>
 
         {/* Enemy team */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {enemyDisplay.map((g, i) => (
-            <BattleUnit
-              key={g.instanceId}
-              general={g}
-              side="enemy"
-              animClass={animClass[`enemy-${i}`] ?? ''}
-            />
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, position: 'relative' }}>
+          {arenaSavedAt !== undefined && (
+            <div style={{
+              fontSize: 9,
+              color: '#8ab4f8',
+              background: 'rgba(0,0,0,0.4)',
+              padding: '2px 6px',
+              borderRadius: 3,
+              border: '1px solid #3a5a9a',
+              alignSelf: 'flex-start',
+              whiteSpace: 'nowrap',
+            }}>
+              ⚔ 玩家阵容 · {arenaSavedAt > 0 ? formatTimestamp(arenaSavedAt) : '历史数据'}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {enemyDisplay.map((g, i) => (
+              <BattleUnit
+                key={g.instanceId}
+                general={g}
+                side="enemy"
+                animClass={animClass[`enemy-${i}`] ?? ''}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -263,4 +375,18 @@ export function BattleScreen() {
       )}
     </div>
   );
+}
+
+function formatTimestamp(ts: number): string {
+  const now = Date.now();
+  const diff = now - ts;
+  const min = 60 * 1000;
+  const hr = 60 * min;
+  const day = 24 * hr;
+  if (diff < min) return '刚刚';
+  if (diff < hr) return `${Math.floor(diff / min)}分钟前`;
+  if (diff < day) return `${Math.floor(diff / hr)}小时前`;
+  if (diff < 30 * day) return `${Math.floor(diff / day)}天前`;
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

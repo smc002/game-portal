@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GeneralInstance } from '../data/types';
 import { TIER_COLORS, MAX_TEAM_SIZE, XP_TO_LV2, XP_TO_LV3 } from '../data/types';
 import { generals } from '../data/generals';
 import { Tooltip } from './Tooltip';
 import { items } from '../data/items';
+import { getLeveledAbilityDesc } from '../engine/helpers';
 
 interface Props {
   team: GeneralInstance[];
@@ -27,9 +28,61 @@ function getPerkName(perkId: string): string {
   return items.find((i) => i.id === perkId)?.name ?? perkId;
 }
 
-export function TeamSlots({ team, onReorder, onSell, onMerge, onSlotClick, highlightSlots, pendingItemName }: Props) {
+function getPerkDesc(perkId: string): string {
+  return items.find((i) => i.id === perkId)?.description ?? '';
+}
+
+interface StatFloat {
+  atkDelta: number;
+  hpDelta: number;
+  key: number; // unique key to re-trigger animation
+}
+
+let floatKey = 0;
+
+export function TeamSlots({ team, onReorder, onSell, onMerge, onSlotClick, highlightSlots, pendingItemName: _pendingItemName }: Props) {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+
+  // Clear drag state when team changes (e.g. after selling)
+  useEffect(() => {
+    setDragIdx(null);
+    setDragOver(null);
+  }, [team]);
+
+  // Stat change floating text
+  const prevStatsRef = useRef<Record<string, { atk: number; hp: number }>>({});
+  const [floats, setFloats] = useState<Record<string, StatFloat>>({});
+
+  useEffect(() => {
+    const newFloats: Record<string, StatFloat> = {};
+    for (const g of team) {
+      const totalAtk = g.atk + g.tempAtk;
+      const totalHp = g.hp + g.tempHp;
+      const prev = prevStatsRef.current[g.instanceId];
+      if (prev) {
+        const atkDelta = totalAtk - prev.atk;
+        const hpDelta = totalHp - prev.hp;
+        if (atkDelta > 0 || hpDelta > 0) {
+          newFloats[g.instanceId] = {
+            atkDelta: Math.max(0, atkDelta),
+            hpDelta: Math.max(0, hpDelta),
+            key: ++floatKey,
+          };
+        }
+      }
+      prevStatsRef.current[g.instanceId] = { atk: totalAtk, hp: totalHp };
+    }
+    // Clean up removed units
+    const ids = new Set(team.map((g) => g.instanceId));
+    for (const id of Object.keys(prevStatsRef.current)) {
+      if (!ids.has(id)) delete prevStatsRef.current[id];
+    }
+    if (Object.keys(newFloats).length > 0) {
+      setFloats(newFloats);
+      setTimeout(() => setFloats({}), 850);
+    }
+  }, [team]);
 
   const handleDragStart = useCallback((e: React.DragEvent, idx: number) => {
     setDragIdx(idx);
@@ -136,6 +189,26 @@ export function TeamSlots({ team, onReorder, onSell, onMerge, onSlotClick, highl
               <span className="hp">{general.hp + general.tempHp}</span>
             </div>
 
+            {/* Stat float-up (positioned relative to card, spread wide) */}
+            {(() => {
+              const f = floats[general.instanceId];
+              if (!f) return null;
+              return (
+                <>
+                  {f.atkDelta > 0 && (
+                    <span key={`a${f.key}`} className="stat-float" style={{ color: 'var(--atk-color)', left: -8, bottom: 24 }}>
+                      +{f.atkDelta}
+                    </span>
+                  )}
+                  {f.hpDelta > 0 && (
+                    <span key={`h${f.key}`} className="stat-float" style={{ color: 'var(--hp-color)', right: -8, bottom: 24 }}>
+                      +{f.hpDelta}
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+
             {/* XP Progress Bar */}
             {(() => {
               const progress = getXpProgress(general);
@@ -201,10 +274,12 @@ export function TeamSlots({ team, onReorder, onSell, onMerge, onSlotClick, highl
           <div style={{ color: 'var(--text-secondary)', fontSize: 10, marginBottom: 4 }}>
             T{def.tier} | {general.atk}/{general.hp} | {xpText}
           </div>
-          <div style={{ color: '#ccc', marginBottom: 4 }}>{def.abilityDesc}</div>
+          <div style={{ color: '#ccc', marginBottom: 4 }}>
+            {getLeveledAbilityDesc(def, general.level)}
+          </div>
           {general.perk && (
-            <div style={{ color: '#d4a574', fontSize: 10 }}>
-              锦囊: {getPerkName(general.perk)}
+            <div style={{ color: '#d4a574', fontSize: 10, marginBottom: 2 }}>
+              锦囊【{getPerkName(general.perk)}】: {getPerkDesc(general.perk)}
             </div>
           )}
           <div style={{ color: 'var(--text-secondary)', fontSize: 9, marginTop: 4 }}>
