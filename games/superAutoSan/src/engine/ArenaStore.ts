@@ -100,10 +100,10 @@ export function getArenaTeam(wave: number): { team: GeneralInstance[]; arenaIdx:
 }
 
 /**
- * Save a winning team to the arena for the given wave.
- * If the arena is full, replace the defeated entry (defeatedIdx).
+ * Save a player team to the arena for the given wave (regardless of win/lose).
+ * If < 20 entries, append; if full, replace a random entry.
  */
-export function saveArenaTeam(wave: number, team: GeneralInstance[], defeatedIdx?: number): void {
+export function saveArenaTeam(wave: number, team: GeneralInstance[]): void {
   const arena = loadArena();
   if (!arena[wave]) arena[wave] = [];
 
@@ -116,10 +116,7 @@ export function saveArenaTeam(wave: number, team: GeneralInstance[], defeatedIdx
 
   if (arena[wave].length < MAX_TEAMS_PER_WAVE) {
     arena[wave].push(entry);
-  } else if (defeatedIdx !== undefined && defeatedIdx >= 0 && defeatedIdx < arena[wave].length) {
-    arena[wave][defeatedIdx] = entry;
   } else {
-    // Full and no specific defeated index: replace a random one
     const replaceIdx = Math.floor(Math.random() * arena[wave].length);
     arena[wave][replaceIdx] = entry;
   }

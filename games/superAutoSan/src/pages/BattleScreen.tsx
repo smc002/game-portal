@@ -5,7 +5,7 @@ import { useShopStore } from '../store/shopStore';
 import { BattleUnit } from '../components/BattleUnit';
 import { StatsBar } from '../components/StatsBar';
 import { executeBattle } from '../engine/BattleEngine';
-import { generateEnemy, getLastArenaIdx, getLastArenaSavedAt } from '../engine/EnemyGenerator';
+import { generateEnemy, getLastArenaSavedAt } from '../engine/EnemyGenerator';
 import { saveArenaTeam } from '../engine/ArenaStore';
 import type { BattleEvent, GeneralInstance } from '../data/types';
 import '../animations/effects.css';
@@ -20,7 +20,6 @@ export function BattleScreen() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [started, setStarted] = useState(false);
   const prebattleTeamRef = useRef<GeneralInstance[]>([]);
-  const arenaIdxRef = useRef<number | undefined>(undefined);
   const battleWaveRef = useRef<number>(0);
   const [arenaSavedAt, setArenaSavedAt] = useState<number | undefined>(undefined);
 
@@ -32,7 +31,6 @@ export function BattleScreen() {
     const currentWave = wave + 1;
     battleWaveRef.current = currentWave;
     const enemy = generateEnemy(currentWave);
-    arenaIdxRef.current = getLastArenaIdx();
     setArenaSavedAt(getLastArenaSavedAt());
     // Save pre-battle team snapshot for revival after battle
     prebattleTeamRef.current = JSON.parse(JSON.stringify(team));
@@ -168,10 +166,8 @@ export function BattleScreen() {
         });
         updateTeam(restoredTeam);
 
-        // Save winning team to PVE arena
-        if (event.result === 'win') {
-          saveArenaTeam(battleWaveRef.current, preTeam, arenaIdxRef.current);
-        }
+        // Save player team to PVE arena (win or lose — all contribute to the pool)
+        saveArenaTeam(battleWaveRef.current, preTeam);
 
         setBattleLog((prev) => [
           ...prev,

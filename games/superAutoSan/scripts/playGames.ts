@@ -226,11 +226,11 @@ function simulateOneGame(maxTurns: number): GameRun {
     const result = executeBattle(teamCopy, enemy);
     if (result.result === 'win') {
       turnsCleared++;
-      // Save snapshot of winning team for this wave
-      snapshotsByWave.set(turn, preBattleSnapshot);
     } else if (result.result === 'lose') {
       lives--;
     }
+    // Save snapshot regardless of result (matches game behavior)
+    snapshotsByWave.set(turn, preBattleSnapshot);
     // Restore HP between rounds
     for (const t of team) {
       t.hp = t.maxHp;
@@ -242,7 +242,7 @@ function simulateOneGame(maxTurns: number): GameRun {
 
 // === Main ===
 function main() {
-  const NUM_GAMES = 5;
+  const NUM_GAMES = 10;
   const MAX_TURNS = 15; // 正常模式 1-15 关
   const runs: GameRun[] = [];
 
@@ -262,7 +262,8 @@ function main() {
     );
   }
 
-  // Build arena seed: gather all winning snapshots from all 5 games, by wave
+  // Build arena seed: gather snapshots from all games, capped to 5 per wave
+  const MAX_SEED_PER_WAVE = 5;
   type ArenaEntry = { team: GeneralInstance[]; savedAt: number; comment: string };
   const arenaSeed: Record<number, ArenaEntry[]> = {};
 
@@ -271,9 +272,10 @@ function main() {
     const run = runs[gameIdx]!;
     for (const [wave, snapshot] of run.snapshotsByWave) {
       if (!arenaSeed[wave]) arenaSeed[wave] = [];
+      if (arenaSeed[wave].length >= MAX_SEED_PER_WAVE) continue;
       arenaSeed[wave].push({
         team: snapshot,
-        savedAt: Date.now() - entryCounter * 60_000, // staggered, "几分钟前"
+        savedAt: Date.now() - entryCounter * 60_000,
         comment: `模拟玩家 #${gameIdx + 1}，关卡 ${wave}`,
       });
       entryCounter++;

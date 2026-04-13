@@ -29,6 +29,7 @@ COPY package.json package-lock.json ./
 COPY games/sanPal/package.json games/sanPal/
 COPY games/rglike/package.json games/rglike/
 COPY games/superAutoSan/package.json games/superAutoSan/
+COPY games/tetris/package.json games/tetris/
 
 RUN npm ci
 
@@ -54,6 +55,11 @@ RUN npm run build -w rglikeproject-temp
 FROM deps AS build-superautosan
 COPY games/superAutoSan/ games/superAutoSan/
 RUN npm run build -w superautosan
+
+# ---- Build Stage: tetris ----
+FROM deps AS build-tetris
+COPY games/tetris/ games/tetris/
+RUN npm run build -w tetris
 
 # ---- Runtime Stage ----
 FROM node:20-alpine
@@ -83,6 +89,9 @@ COPY --from=build-rglike /app/games/rglike/dist games/rglike/dist/
 
 # superAutoSan 构建产物（纯前端静态文件）
 COPY --from=build-superautosan /app/games/superAutoSan/dist games/superAutoSan/dist/
+
+# tetris 构建产物（纯前端静态文件）
+COPY --from=build-tetris /app/games/tetris/dist games/tetris/dist/
 
 # Portal 页
 COPY portal/ portal/

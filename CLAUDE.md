@@ -35,6 +35,11 @@
 - `games/rglike/docs/hero-design.md` — 武将设计图鉴（武将属性、技能、被动）
 - `games/rglike/docs/item-design.md` — 装备设计（装备属性、效果、价格）
 
+### tetris 文档
+
+- `games/tetris/docs/game.md` — 核心系统设计（棋盘、7种方块、SRS旋转、计分、等级、UI）
+- `games/tetris/docs/tech_plan.md` — 技术方案（目录结构、类型定义、引擎模块、开发阶段）
+
 ### superAutoSan 文档
 
 - `games/superAutoSan/docs/game.md` — 核心系统设计（商店、战斗、武将表、道具表、UI）

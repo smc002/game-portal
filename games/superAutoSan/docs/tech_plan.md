@@ -371,7 +371,7 @@ function saveArenaTeam(wave, team, defeatedIdx?): void;
 - 向后兼容：旧格式（裸 `GeneralInstance[][]`）会自动包装为 `savedAt: 0`
 - 取出时重新分配 `instanceId`，**保留** tempAtk/tempHp（临时增益是阵容真实强度的一部分），恢复 `hp = maxHp`
 - 保存时也保留 tempAtk/tempHp，仅重置 hp = maxHp
-- 满 20 套时，若有 `defeatedIdx` 则替换该位置（胜者替败者），否则随机替换
+- **无论胜败**均存入玩家阵容：未满 20 套时追加，已满时替换随机一套
 - BattleScreen 在敌方区域上方显示蓝色小标签：`⚔ 玩家阵容 · 5分钟前 / 2小时前 / 3天前 / yyyy-MM-dd`
 - **首次启动种子**：localStorage 为空时，从 `seedArena.ts` 加载 `SEED_ARENA` 写入并标记 `superAutoSan_arena_seeded`，后续不会重复种子。详见"十一·五、阵容种子生成工具"
 
@@ -546,53 +546,83 @@ npm run dev -w superautosan
 
 ---
 
-## 十一·五、阵容种子生成工具（playGames）
+## 十一·五、阵容种子工具
 
 ### 用途
 为 PVE 竞技场 (`ArenaStore`) 生成初始阵容种子，让首次启动游戏的玩家就能遇到"模拟玩家"留下的真实风格阵容，而不是从空池子开始。
 
 ### 文件
-- `scripts/playGames.ts` — Node 模拟器（依赖 tsx 直接执行 TS）
-- `src/engine/seedArena.ts` — **自动生成**的种子数据文件，包含 `SEED_ARENA: Record<wave, SeededArenaEntry[]>`
-- `src/engine/ArenaStore.ts` — 首次启动时检测 localStorage 为空，自动用 `SEED_ARENA` 初始化并写入；用 `superAutoSan_arena_seeded` 标志位避免重复种子
+| 文件 | 说明 |
+|------|------|
+| `scripts/playGames.ts` | AI 模拟器：模拟 10 局游戏，每局 15 回合，输出每关 5 套阵容 |
+| `scripts/importArena.ts` | 合并工具：先跑 playGames 生成模拟数据，再合并玩家真实数据 |
+| `scripts/arena-export.json` | 玩家从浏览器导出的 localStorage 数据（不入 git） |
+| `src/engine/seedArena.ts` | **自动生成**的种子数据文件，`SEED_ARENA: Record<wave, SeededArenaEntry[]>` |
+| `src/engine/ArenaStore.ts` | 首次启动时检测 localStorage 为空，自动用 `SEED_ARENA` 初始化 |
 
-### 工作原理
-1. 模拟器内置一个 AI 玩家：每回合刷新商店、合并同名武将、买装备/食物（含 `酒` 临时增益）
-2. 每回合战斗使用真实的 `executeBattle` + `generateEnemy` 引擎，结果与游戏一致
-3. **每次胜利**都把 *战前* 阵容快照（保留全部 tempAtk/tempHp）按 wave 索引保存
-4. 跑完 5 局后，把所有快照按关卡分组写入 `seedArena.ts`，每条带 `savedAt` 时间戳和注释
+### 敌方生成优先级
+`EnemyGenerator.generateEnemy(wave)` 按 **50/50 随机**混合两个来源：
+- **竞技场** (`ArenaStore`)：从 localStorage 中存储的玩家阵容池随机抽取
+- **模拟对局** (`SimulateGame`)：从启动时预生成的 8 套模拟快照中随机抽取
 
-### 用法
+两者都 miss 时降级到随机生成。50/50 混合确保即使种子池较小也有足够多样性。
+
+### 工作流程
+
+#### 方式一：纯模拟生成（无玩家数据）
 ```bash
 cd games/superAutoSan
 npx tsx scripts/playGames.ts
 ```
+模拟 10 局游戏，每关保留 5 套阵容（胜败均保存），共约 75 套写入 `seedArena.ts`。
+
+#### 方式二：导入玩家数据 + 模拟补充（推荐）
+```bash
+# 1. 在本地游戏页面按 F12，控制台执行：
+copy(localStorage.getItem('superAutoSan_arena'))
+
+# 2. 粘贴到文件
+#    → scripts/arena-export.json
+
+# 3. 一键合并（自动跑模拟 + 合并玩家数据）
+cd games/superAutoSan
+npx tsx scripts/importArena.ts
+```
+
+合并逻辑：
+1. 先运行 `playGames.ts` 生成模拟基础阵容（每关 5 套）
+2. 读取 `arena-export.json` 中的玩家真实阵容
+3. 按关卡合并（每关上限 20 套），玩家数据追加在模拟数据之后
+4. 写入 `seedArena.ts`
 
 输出示例：
 ```
-正在模拟 5 局游戏，每局最多 15 回合...
-第 1 局：通关 5/15 关，最终阵容力量 128
-  最终阵容: 商贾(L2 11/8+铁骨), 刺客(L2 9/9+铁骨), ...
-...
-已写入 src/engine/seedArena.ts
-关卡 1: 1 套阵容
-关卡 2: 1 套阵容
-...
-总共 31 套阵容写入种子
+=== 第一步：运行模拟生成基础阵容 ===
+正在模拟 10 局游戏...
+总共 75 套阵容写入种子
+
+=== 第二步：读取模拟种子 ===
+模拟种子：75 套阵容
+
+=== 第三步：合并玩家真实数据 ===
+玩家数据：24 套阵容已合并
+
+=== 完成 ===
+总共 99 套阵容
 ```
 
 ### AI 策略概览
 - **购买**：每回合最多 5 次刷新；优先合并同名武将，否则按 Tier 高→低买入新武将
-- **道具**：锦囊装备给最厚血肉盾；属性食物加给最强单位；`酒` 给最强单位 +3/+3 临时
+- **道具**：锦囊装备给最厚血的前排；属性食物加给最强单位；`酒` 给最强单位 +3/+3 临时
 - **出售**：4 阶后若队伍已满且持有低 Tier Lv1 武将，出售腾位
-- **战斗**：使用真实战斗引擎，胜利计入通关数，失败扣命，归零退出
+- **战斗**：使用真实战斗引擎 (`executeBattle`)，胜败均保存阵容快照（与游戏行为一致）
 
 ### 重新生成时机
 - 数据层有重大调整（武将数值、道具效果、波次配置）后
-- 想刷新种子池子让玩家遇到不同风格阵容时
+- 玩家积累了新的高质量阵容想打包上线时
 - 调整 AI 策略后
 
-种子文件直接 commit 到 git，玩家加载时无需额外网络请求。
+种子文件直接 commit 到 git，玩家加载时无需额外网络请求。`arena-export.json` 为临时文件，建议加入 `.gitignore`。
 
 ---
 

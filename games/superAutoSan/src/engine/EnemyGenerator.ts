@@ -5,13 +5,8 @@ import { createInstance, randomInt, randomPick } from './helpers';
 import { getSimulatedEnemy } from './SimulateGame';
 import { getArenaTeam } from './ArenaStore';
 
-/** Tracks arena info of the last generated enemy (if from arena) */
-let lastArenaIdx: number | undefined;
+/** Tracks arena savedAt of the last generated enemy (if from arena) */
 let lastArenaSavedAt: number | undefined;
-
-export function getLastArenaIdx(): number | undefined {
-  return lastArenaIdx;
-}
 
 export function getLastArenaSavedAt(): number | undefined {
   return lastArenaSavedAt;
@@ -35,23 +30,36 @@ function applyEndlessBonus(team: GeneralInstance[], wave: number): void {
 }
 
 export function generateEnemy(wave: number): GeneralInstance[] {
-  lastArenaIdx = undefined;
   lastArenaSavedAt = undefined;
 
-  // Try PVE arena first (real player teams)
-  const arena = getArenaTeam(wave);
-  if (arena && arena.team.length > 0) {
-    lastArenaIdx = arena.arenaIdx;
-    lastArenaSavedAt = arena.savedAt;
-    applyEndlessBonus(arena.team, wave);
-    return arena.team;
+  // Mix arena (player teams) and simulation for variety
+  // 50% chance arena, 50% chance simulation; fallback to random if both miss
+  const tryArenaFirst = Math.random() < 0.5;
+
+  if (tryArenaFirst) {
+    const arena = getArenaTeam(wave);
+    if (arena && arena.team.length > 0) {
+      lastArenaSavedAt = arena.savedAt;
+      applyEndlessBonus(arena.team, wave);
+      return arena.team;
+    }
   }
 
-  // Try simulated enemy (more realistic difficulty)
+  // Try simulated enemy
   const simulated = getSimulatedEnemy(wave);
   if (simulated && simulated.length > 0) {
     applyEndlessBonus(simulated, wave);
     return simulated;
+  }
+
+  // If simulation missed, try arena as fallback
+  if (!tryArenaFirst) {
+    const arena = getArenaTeam(wave);
+    if (arena && arena.team.length > 0) {
+      lastArenaSavedAt = arena.savedAt;
+      applyEndlessBonus(arena.team, wave);
+      return arena.team;
+    }
   }
 
   // Fallback: random generation from wave config

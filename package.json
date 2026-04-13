@@ -4,6 +4,7 @@
   "workspaces": [
     "games/sanPal",
     "games/rglike",
-    "games/superAutoSan"
+    "games/superAutoSan",
+    "games/tetris"
   ]
 }
