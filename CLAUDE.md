@@ -47,6 +47,11 @@
 - `games/superAutoSan/docs/enemy_waves.md` — 敌方波次配置（关卡难度递增规则）
 - `games/superAutoSan/docs/sap_reference.md` — Super Auto Pets 原版数据参考
 
+### sanPoker 文档
+
+- `games/sanPoker/docs/game.md` — 核心规则设计（对局流程、双盲乘数下注、战场条件池、信息可见性、MTT 扩展方向）
+- `games/sanPoker/docs/battle_reference.md` — 三谋战斗规则参考（战法分类、属性、状态、3 武将 + 9 战法 MVP 样本）
+
 ### 同步要求
 
 1. 新增/删除的系统机制必须在对应文档中体现
