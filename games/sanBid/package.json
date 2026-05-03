@@ -1,0 +1,17 @@
+{
+  "name": "sanbid",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "三国竞拍 — 仓库盲盒 + 阈值递降 + MTT 锦标赛 demo",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.10"
+  }
+}

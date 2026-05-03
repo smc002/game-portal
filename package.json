@@ -2,6 +2,7 @@
   "name": "san-sdc2-monorepo",
   "private": true,
   "workspaces": [
+    "games/sanBid",
     "games/sanPal",
     "games/rglike",
     "games/superAutoSan",

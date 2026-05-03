@@ -26,12 +26,18 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # 纯前端 workspace
+COPY games/sanBid/package.json games/sanBid/
 COPY games/sanPal/package.json games/sanPal/
 COPY games/rglike/package.json games/rglike/
 COPY games/superAutoSan/package.json games/superAutoSan/
 COPY games/tetris/package.json games/tetris/
 
 RUN npm ci
+
+# ---- Build Stage: sanBid ----
+FROM deps AS build-sanbid
+COPY games/sanBid/ games/sanBid/
+RUN npm run build -w sanbid
 
 # ---- Build Stage: sanPal ----
 FROM deps AS build-sanpal
@@ -74,6 +80,9 @@ COPY --from=build-sdc2 /app/server/package.json games/sdc2/server/
 COPY --from=build-sdc2 /app/package.json /app/package-lock.json games/sdc2/
 COPY --from=build-sdc2 /app/shared/ games/sdc2/shared/
 RUN cd games/sdc2 && npm ci --workspace=server --omit=dev --ignore-scripts
+
+# sanBid 构建产物（纯前端静态文件）
+COPY --from=build-sanbid /app/games/sanBid/dist games/sanBid/dist/
 
 # sanPal 构建产物（纯前端静态文件）
 COPY --from=build-sanpal /app/games/sanPal/dist games/sanPal/dist/
