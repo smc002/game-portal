@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞拍之王 BidKing — 规则速览与德扑对比</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+         max-width: 880px; margin: 40px auto; padding: 0 24px; color: #1f2937;
+         background: #fafaf7; line-height: 1.7; }
+  .back { display: inline-block; color: #8b4513; text-decoration: none; margin-bottom: 12px; font-size: 14px; }
+  .back:hover { text-decoration: underline; }
+  h1 { font-size: 28px; border-bottom: 2px solid #b8860b; padding-bottom: 8px; }
+  h2 { font-size: 20px; color: #8b4513; margin-top: 32px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; background: #fff; }
+  th, td { border: 1px solid #d6c9a3; padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f4ead0; width: 130px; }
+  figure { margin: 20px 0; }
+  figure img { width: 100%; border-radius: 6px; border: 1px solid #c9b88a; display: block; }
+  figcaption { font-size: 13px; color: #6b7280; margin-top: 4px; text-align: center; }
+  .poker { background: #fff8e7; border-left: 4px solid #b8860b; padding: 12px 18px; border-radius: 4px; }
+  .poker li { margin: 6px 0; }
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0 28px; }
+  .features .card { background: #fff; border: 1px solid #d6c9a3; border-top: 3px solid #b8860b;
+                    border-radius: 6px; padding: 14px 16px; }
+  .features .card h3 { color: #8b4513; font-size: 15px; margin: 0 0 6px; }
+  .features .card p { margin: 0; font-size: 14px; color: #4b5563; line-height: 1.55; }
+  @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; background: #b8860b; color: #fff; font-size: 12px;
+         padding: 2px 8px; border-radius: 10px; margin-right: 6px; }
+  .src { font-size: 12px; color: #6b7280; margin-top: 36px; border-top: 1px dashed #ccc; padding-top: 12px; }
+  .src a { color: #8b4513; }
+</style>
+</head>
+<body>
+
+<a class="back" href="/">← 返回 Game Portal</a>
+
+<h1>《竞拍之王》BidKing — 规则速览</h1>
+
+<h2 style="margin-top:20px;">核心特色</h2>
+<div class="features">
+  <div class="card">
+    <h3>① 赌博感拉满</h3>
+    <p>真金推上桌，信息不全下决断。每一次出价都伴随"会赚翻 / 会接盘"的肾上腺素，与赌场体验同源。</p>
+  </div>
+  <div class="card">
+    <h3>② 上手门槛极低</h3>
+    <p>规则一两句话讲完，单局 30 秒以内，<b>乐趣密度极高</b>。不会的人摸两把就能玩。</p>
+  </div>
+  <div class="card">
+    <h3>③ 可凭概率计算提升</h3>
+    <p>下限是凭感觉，上限是<b>精算期望值与对手范围</b>。菜鸟与高手胜率天差地别，技术天花板很高。</p>
+  </div>
+</div>
+
+<figure>
+  <img src="bidking-round.jpg" alt="竞拍之王 出价回合界面">
+  <figcaption>出价回合 · 左侧英雄揭露不同私有信息（盲盒地图 / 挪米 / 十方观控 / 总仓储量 / 良品率 ...），右侧仓库轮廓逐步揭示</figcaption>
+</figure>
+
+<figure>
+  <img src="bidking-settlement.jpg" alt="竞拍之王 对局结束 收益结算">
+  <figcaption>对局结束结算界面 · 拍得花费 / 战利品实际价格 / 利润 一目了然</figcaption>
+</figure>
+
+<h2>一、基础规则</h2>
+<table>
+  <tr><th>每局人数</th><td>2–4 人</td></tr>
+  <tr><th>入场费</th><td>分等级场次，不同场次入场费不同（参考《三角洲行动》分级模式）</td></tr>
+  <tr><th>出价方式</th><td>每轮所有人<b>暗标出价</b>，到时间一起公布</td></tr>
+  <tr><th>成交规则</th><td>第 1 轮：最高价 ≥ 第二名 × <b>2 倍</b> → 直接成交；<br>否则进入下一轮，<b>差价倍数阈值逐轮递减</b>，直至成交</td></tr>
+  <tr><th>私有信息</th><td>每位玩家选择的英雄会揭露仓库的<b>不同侧面</b>：轮廓、品质、均价、总数等，玩家间互不相同</td></tr>
+  <tr><th>公共信息</th><td>每轮系统会向<b>全场公开一条</b>仓库信息</td></tr>
+  <tr><th>道具</th><td>每轮可使用 1 个道具获取额外信息；<b>道具使用动作全场可见</b>，可用于反向 bluff</td></tr>
+  <tr><th>结算分润</th><td>成交后，若中标价<b>低于</b>仓库实际价值 → 中标者独享差价利润；<br>若中标价<b>高于</b>实际价值（中标者亏本）→ 其他每位参与者拿到亏损的 <b>1/10</b>，<b>剩余部分系统抽成</b></td></tr>
+  <tr><th>单局节奏</th><td>单局时间极短，<b>通常在 30 秒内</b>结束，乐趣密度极高</td></tr>
+  <tr><th>上手门槛</th><td><b>极低</b>，规则一两句话讲完，但博弈深度足够</td></tr>
+</table>
+
+<h2>二、与德扑 / 德扑锦标赛的相像之处</h2>
+
+<div class="poker">
+<ul>
+  <li><span class="tag">公共+私有信息</span>每人基于<b>共同的公共信息</b>叠加<b>各自独有的私有信息</b>独立估价——结构同德扑的公共牌 + 底牌。</li>
+  <li><span class="tag">出价感受</span>金额本身就是信号，既要赢拍品也要给对手发误导，等同德扑的下注尺度博弈。</li>
+  <li><span class="tag">ALL IN</span>用偏高的价格<b>赌仓库里开出高档货</b>——赢则一夜暴富，输则套牢，这种"赌小概率大收益"的心理体验和德扑 ALL IN 一致。</li>
+  <li><span class="tag">紧凶节奏</span>多数轮次出极低价"过牌"，只在关键拍品发力——对应德扑高手 ~20% VPIP 的耐心打法。</li>
+</ul>
+</div>
+
+<p style="text-align:center; color:#8b4513; margin-top:30px;">
+<b>一句话：德扑的"下注-诈唬-读牌"，换皮成"出价-误导-猜估值"。</b>
+</p>
+
+<div class="src">
+来源：
+<a href="https://store.steampowered.com/app/4128580/BidKing/?l=schinese">Steam 官方页</a> ·
+<a href="https://www.bidking.net/">BidKing 官网</a> ·
+<a href="https://bidking.wiki/">BidKing Wiki</a> ·
+<a href="https://www.taptap.cn/moment/793166325978500440">TapTap 竞买人手册</a> ·
+<a href="https://zhuanlan.zhihu.com/p/2017011615971714208">知乎制作人专访</a>
+</div>
+
+</body>
+</html>
