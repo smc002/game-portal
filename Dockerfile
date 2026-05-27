@@ -31,6 +31,7 @@ COPY games/sanPal/package.json games/sanPal/
 COPY games/rglike/package.json games/rglike/
 COPY games/superAutoSan/package.json games/superAutoSan/
 COPY games/tetris/package.json games/tetris/
+COPY games/zhanChengMaster/package.json games/zhanChengMaster/
 
 RUN npm ci
 
@@ -67,6 +68,11 @@ FROM deps AS build-tetris
 COPY games/tetris/ games/tetris/
 RUN npm run build -w tetris
 
+# ---- Build Stage: zhanChengMaster ----
+FROM deps AS build-zhanchengmaster
+COPY games/zhanChengMaster/ games/zhanChengMaster/
+RUN npm run build -w zhanchengmaster
+
 # ---- Runtime Stage ----
 FROM node:20-alpine
 RUN apk add --no-cache nginx
@@ -101,6 +107,9 @@ COPY --from=build-superautosan /app/games/superAutoSan/dist games/superAutoSan/d
 
 # tetris 构建产物（纯前端静态文件）
 COPY --from=build-tetris /app/games/tetris/dist games/tetris/dist/
+
+# zhanChengMaster 构建产物（纯前端静态文件）
+COPY --from=build-zhanchengmaster /app/games/zhanChengMaster/dist games/zhanChengMaster/dist/
 
 # Portal 页
 COPY portal/ portal/
